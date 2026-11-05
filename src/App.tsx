@@ -2,7 +2,7 @@ import { Home } from './ui/Home';
 import { RoomPage } from './ui/RoomPage';
 import { RulesPage } from './ui/RulesPage';
 import { useHashPath } from './ui/router';
-import { normalizeRoomCode } from './net/peer';
+import { normalizeRoomCode } from './net/common';
 
 export function App() {
   const path = useHashPath();

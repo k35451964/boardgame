@@ -9,7 +9,7 @@ export interface SeatInfo {
 }
 
 export interface ChatMessage {
-  id: number;
+  id: string | number;
   from: string;
   text: string;
   at: number;
@@ -52,28 +52,10 @@ export interface RoomClient<View = unknown, Action = unknown, Options = unknown>
   removeSeat?(id: PlayerId): void;
   setOptions?(options: Options): void;
   backToLobby?(): void;
+  /** 방을 완전히 닫기 */
+  destroy?(): void;
+  /** 연결이 끊긴 사람 차례에 봇이 대신 한 수 두기 */
+  substitute?(playerId: PlayerId): void;
   /** 행동이 거부되었을 때 화면에 띄울 메시지 */
   onError?: (message: string) => void;
 }
-
-// ───────── 통신 메시지 ─────────
-
-export type ToHost =
-  | { t: 'hello'; name: string; token: string; gameId: string }
-  | { t: 'action'; action: unknown }
-  | { t: 'chat'; text: string };
-
-export type ToGuest =
-  | { t: 'welcome'; you: PlayerId | null }
-  | {
-      t: 'sync';
-      gameId: string;
-      status: RoomStatus;
-      seats: SeatInfo[];
-      options: unknown;
-      view: unknown;
-      chat: ChatMessage[];
-      version: number;
-    }
-  | { t: 'error'; message: string }
-  | { t: 'closed'; reason: string };

@@ -38,8 +38,8 @@ export function Lobby({ snapshot: s, client, module, onClose }: Props) {
   return (
     <div className="lobby">
       <header className="lobby-head">
-        <button className="btn btn-ghost btn-small" onClick={s.isHost ? onClose : () => navigate('/')}>
-          ← {s.isHost && !s.local ? '방 닫기' : '나가기'}
+        <button className="btn btn-ghost btn-small" onClick={() => navigate('/')}>
+          ← 나가기
         </button>
         <h1>{game?.title}</h1>
         <span />
@@ -56,10 +56,14 @@ export function Lobby({ snapshot: s, client, module, onClose }: Props) {
               <button className="btn btn-primary" onClick={copy}>
                 {copied ? '복사했어요!' : '초대 링크 보내기'}
               </button>
-              <p className="hint">이 페이지를 닫지 마세요. 방장의 브라우저가 게임 서버 역할을 해요.</p>
+              <button className="btn btn-ghost btn-small" onClick={onClose}>
+                방 닫기
+              </button>
             </div>
           ) : (
-            <p className="hint">{s.connection === 'online' ? '방장이 게임을 시작하길 기다리는 중...' : '방에 연결하는 중...'}</p>
+            <p className="hint">
+              {s.status === 'connecting' ? '방에 연결하는 중...' : s.myId ? '방장이 게임을 시작하길 기다리는 중...' : '자리가 꽉 차서 관전 중이에요.'}
+            </p>
           )}
         </section>
       )}

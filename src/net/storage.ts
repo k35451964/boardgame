@@ -26,8 +26,6 @@ export function remove(key: string): void {
 
 export const keys = {
   name: 'sg:name',
-  token: (code: string) => `sg:token:${code}`,
-  host: (code: string) => `sg:host:${code}`,
 };
 
 export function getMyName(): string {
@@ -36,13 +34,4 @@ export function getMyName(): string {
 
 export function setMyName(name: string): void {
   save(keys.name, name.trim().slice(0, 12));
-}
-
-export function getToken(code: string): string {
-  let token = load<string>(keys.token(code));
-  if (!token) {
-    token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-    save(keys.token(code), token);
-  }
-  return token;
 }

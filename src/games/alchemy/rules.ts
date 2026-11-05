@@ -320,6 +320,7 @@ export function apply(prev: AlchemyState, playerId: PlayerId, action: AlchemyAct
       break;
     }
   }
+  if (state.log.length > 120) state.log = state.log.slice(-120);
   return state;
 }
 

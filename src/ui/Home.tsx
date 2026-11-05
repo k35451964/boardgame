@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { GAMES, SITE_TITLE } from '../config';
-import { makeRoomCode, normalizeRoomCode } from '../net/peer';
+import { GAME_MODULES } from '../games/registry';
+import { normalizeRoomCode } from '../net/common';
+import { isFirebaseConfigured } from '../net/firebase';
+import { createOnlineRoom } from '../net/firebaseRoom';
 import { getMyName, setMyName } from '../net/storage';
 import { navigate } from './router';
-
-export const CREATING_KEY = 'sg:creating';
 
 export function Home() {
   const [name, setName] = useState(getMyName());
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [creating, setCreating] = useState(false);
+  const online = isFirebaseConfigured();
 
   const ensureName = () => {
     if (!name.trim()) {
@@ -21,15 +24,17 @@ export function Home() {
     return true;
   };
 
-  const createRoom = () => {
-    if (!ensureName()) return;
-    const newCode = makeRoomCode();
+  const createRoom = async (gameId: string) => {
+    if (!ensureName() || creating) return;
+    setCreating(true);
     try {
-      sessionStorage.setItem(CREATING_KEY, newCode);
-    } catch {
-      /* 무시 */
+      const newCode = await createOnlineRoom(GAME_MODULES[gameId].definition, name.trim());
+      navigate(`/room/${newCode}`);
+    } catch (e) {
+      console.error(e);
+      setError('방을 만들지 못했어요. 인터넷 연결을 확인하고 다시 해 주세요.');
+      setCreating(false);
     }
-    navigate(`/room/${newCode}`);
   };
 
   const joinRoom = (e: React.FormEvent) => {
@@ -91,8 +96,8 @@ export function Home() {
             <p>{g.tagline}</p>
             {g.ready && (
               <div className="game-entry-actions">
-                <button className="btn btn-primary" onClick={createRoom}>
-                  방 만들기
+                <button className="btn btn-primary" onClick={() => createRoom(g.id)} disabled={!online || creating}>
+                  {creating ? '방 만드는 중...' : '방 만들기'}
                 </button>
                 <button className="btn" onClick={practice}>
                   봇과 연습
@@ -105,6 +110,12 @@ export function Home() {
           </article>
         ))}
       </section>
+
+      {!online && (
+        <p className="panel notice">
+          온라인 대전을 하려면 Firebase 설정이 필요해요 (README 참고). 지금은 봇과 연습만 할 수 있어요.
+        </p>
+      )}
 
       <form className="panel join" onSubmit={joinRoom}>
         <h2>친구 방에 들어가기</h2>
@@ -119,7 +130,7 @@ export function Home() {
               setError('');
             }}
           />
-          <button className="btn btn-primary" type="submit">
+          <button className="btn btn-primary" type="submit" disabled={!online}>
             참가
           </button>
         </div>

@@ -86,6 +86,8 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
   const others = view.players.filter((p) => p.id !== myId);
   const unreadChat = snapshot.chat.length - seenChat;
   const ended = view.phase === 'ended';
+  const activeSeat = seatOf(active.id);
+  const absent = !ended && !!me && !!client.substitute && !!activeSeat && !activeSeat.bot && !activeSeat.connected;
 
   let status: string;
   if (ended) status = '게임이 끝났어요';
@@ -121,6 +123,14 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
       <div className={`turn-banner ${isMyTurn ? 'is-mine' : ''} ${view.finalRound && !ended ? 'is-final' : ''}`} role="status">
         <strong>{status}</strong>
         {view.finalRound && !ended && <span className="final-tag">마지막 라운드</span>}
+        {absent && (
+          <span className="absent">
+            {nameOf(active.id)} 님 연결이 끊겼어요.
+            <button className="btn btn-small" onClick={() => client.substitute?.(active.id)}>
+              봇이 대신 두기
+            </button>
+          </span>
+        )}
         {lastEntry && <span className="last-action">{describeLog(lastEntry, nameOf)}</span>}
       </div>
 

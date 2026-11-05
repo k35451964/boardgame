@@ -1589,3 +1589,16 @@ button.patron {
     transition: none !important;
   }
 }
+
+.notice {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  border-color: var(--gold-dim);
+}
+.absent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--danger);
+  font-size: 0.86rem;
+}

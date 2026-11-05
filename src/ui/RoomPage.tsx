@@ -1,10 +1,10 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { GAME_MODULES } from '../games/registry';
-import { GuestRoom } from '../net/guest';
-import { HostRoom } from '../net/host';
-import { getMyName, getToken, setMyName } from '../net/storage';
+import { FirebaseRoom } from '../net/firebaseRoom';
+import { isFirebaseConfigured } from '../net/firebase';
+import { LocalRoom } from '../net/local';
+import { getMyName, setMyName } from '../net/storage';
 import type { RoomClient } from '../net/types';
-import { CREATING_KEY } from './Home';
 import { Lobby } from './Lobby';
 import { navigate } from './router';
 import { useToast } from './useToast';
@@ -14,6 +14,20 @@ const GAME_ID = 'alchemy';
 export function RoomPage({ code, local = false }: { code: string; local?: boolean }) {
   const [name, setName] = useState(getMyName());
   const [ready, setReady] = useState(!!getMyName());
+
+  if (!local && !isFirebaseConfigured()) {
+    return (
+      <div className="center-screen">
+        <div className="panel">
+          <h1>온라인 대전 준비 중</h1>
+          <p>아직 Firebase 설정이 들어가지 않았어요.</p>
+          <button className="btn btn-primary" onClick={() => navigate('/')}>
+            처음으로
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!ready) {
     return (
@@ -40,21 +54,11 @@ export function RoomPage({ code, local = false }: { code: string; local?: boolea
   return <RoomInner code={code} local={local} name={name.trim()} />;
 }
 
-function wasCreatedHere(code: string): boolean {
-  try {
-    return sessionStorage.getItem(CREATING_KEY) === code;
-  } catch {
-    return false;
-  }
-}
-
 function RoomInner({ code, local, name }: { code: string; local: boolean; name: string }) {
   const toast = useToast();
   const [client] = useState<RoomClient>(() => {
     const module = GAME_MODULES[GAME_ID];
-    if (local) return new HostRoom(code, module.definition, name, true);
-    if (HostRoom.hasSaved(code) || wasCreatedHere(code)) return new HostRoom(code, module.definition, name);
-    return new GuestRoom(code, GAME_ID, name, getToken(code));
+    return local ? new LocalRoom(module.definition, name) : new FirebaseRoom(code, module.definition, name);
   });
   client.onError = toast.show;
 
@@ -63,16 +67,13 @@ function RoomInner({ code, local, name }: { code: string; local: boolean; name: 
   const snap = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const module = GAME_MODULES[snap.gameId] ?? GAME_MODULES[GAME_ID];
 
-  // 브라우저 탭 제목에 방 코드 표시
   useEffect(() => {
     document.title = local ? '봇과 연습 · 생교 보드게임' : `방 ${code} · 생교 보드게임`;
   }, [code, local]);
 
   const closeRoom = () => {
-    if (client instanceof HostRoom) {
-      if (!local && !confirm('방을 닫을까요? 친구들도 모두 나가게 돼요.')) return;
-      client.destroy();
-    }
+    if (!confirm('방을 닫을까요? 친구들도 모두 나가게 되고, 진행 중인 게임도 사라져요.')) return;
+    client.destroy?.();
     navigate('/');
   };
 
@@ -81,7 +82,7 @@ function RoomInner({ code, local, name }: { code: string; local: boolean; name: 
     body = (
       <div className="center-screen">
         <div className="panel">
-          <h1>방이 닫혔어요</h1>
+          <h1>방에 들어갈 수 없어요</h1>
           <p>{snap.notice}</p>
           <button className="btn btn-primary" onClick={() => navigate('/')}>
             처음으로
@@ -98,9 +99,9 @@ function RoomInner({ code, local, name }: { code: string; local: boolean; name: 
   return (
     <>
       {body}
-      {snap.connection !== 'online' && snap.status !== 'closed' && (snap.status !== 'connecting' || snap.notice) && (
+      {snap.status !== 'closed' && snap.notice && (
         <div className="conn-banner" role="status">
-          {snap.notice ?? (snap.connection === 'reconnecting' ? '다시 연결하는 중...' : '연결하는 중...')}
+          {snap.notice}
         </div>
       )}
       {toast.message && (

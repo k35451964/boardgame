@@ -28,10 +28,6 @@ jobs:
       - run: npm run build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
-          # 연결이 잘 안 되는 환경을 위한 TURN 서버 (선택). 저장소 Settings > Secrets and variables > Actions > Variables 에 넣으면 쓰인다.
-          VITE_TURN_URLS: ${{ vars.VITE_TURN_URLS }}
-          VITE_TURN_USERNAME: ${{ vars.VITE_TURN_USERNAME }}
-          VITE_TURN_CREDENTIAL: ${{ vars.VITE_TURN_CREDENTIAL }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

@@ -1,6 +1,19 @@
 /** 사이트 이름과 게임 목록. 이름을 바꾸고 싶으면 여기만 고치면 된다. */
 export const SITE_TITLE = '생교 보드게임';
 
+/**
+ * Firebase 웹 앱 설정.
+ * Firebase 콘솔 → 프로젝트 설정 → 내 앱(웹)에 나오는 값을 그대로 붙여 넣는다.
+ * 이 값들은 웹사이트에 공개돼도 괜찮다 (데이터 보호는 database.rules.json 이 맡는다).
+ */
+export const FIREBASE_CONFIG = {
+  apiKey: '',
+  authDomain: '',
+  databaseURL: '',
+  projectId: '',
+  appId: '',
+};
+
 export interface GameEntry {
   id: string;
   title: string;
