@@ -15,17 +15,17 @@ function fresh(players = P, seed = 1): AlchemyState {
 const cur = (s: AlchemyState) => s.players[s.turn].id;
 
 describe('카드 데이터', () => {
-  it('85장이고 id가 겹치지 않는다', () => {
-    expect(CARD_LIST.length).toBe(85);
-    expect(new Set(CARD_LIST.map((c) => c.id)).size).toBe(85);
+  it('90장이고 id가 겹치지 않는다', () => {
+    expect(CARD_LIST.length).toBe(90);
+    expect(new Set(CARD_LIST.map((c) => c.id)).size).toBe(90);
     expect(CARD_LIST.filter((c) => c.tier === 1).length).toBe(40);
-    expect(CARD_LIST.filter((c) => c.tier === 2).length).toBe(25);
+    expect(CARD_LIST.filter((c) => c.tier === 2).length).toBe(30);
     expect(CARD_LIST.filter((c) => c.tier === 3).length).toBe(20);
   });
   it('색마다 같은 구성이다', () => {
     for (const e of ESSENCES) {
       const mine = CARD_LIST.filter((c) => c.essence === e);
-      expect(mine.length).toBe(17);
+      expect(mine.length).toBe(18);
       expect(mine.reduce((s, c) => s + c.points, 0)).toBe(CARD_LIST.reduce((s, c) => s + c.points, 0) / 5);
     }
   });
@@ -40,7 +40,7 @@ describe('시작', () => {
     expect(s2.bank.fire).toBe(4);
     expect(s2.patrons.length).toBe(3);
     const s4 = fresh(['a', 'b', 'c', 'd']);
-    expect(s4.bank.fire).toBe(6);
+    expect(s4.bank.fire).toBe(7);
     expect(s4.patrons.length).toBe(5);
     expect(s4.bank.catalyst).toBe(5);
     expect(s4.market[1].length).toBe(4);
@@ -68,6 +68,19 @@ describe('정수 가져오기', () => {
     s.bank.fire = 3;
     expect(validate(s, p, { type: 'take', colors: ['fire', 'fire'] })).not.toBeNull();
   });
+  it('서로 다른 색은 3개를 가져가야 하고, 남은 색이 적을 때만 덜 가져간다', () => {
+    const s = fresh();
+    const p = cur(s);
+    expect(validate(s, p, { type: 'take', colors: ['fire', 'water'] })).not.toBeNull();
+    expect(validate(s, p, { type: 'take', colors: ['fire'] })).not.toBeNull();
+    s.bank.life = 0;
+    s.bank.light = 0;
+    s.bank.shadow = 0;
+    expect(validate(s, p, { type: 'take', colors: ['fire', 'water'] })).toBeNull();
+    expect(validate(s, p, { type: 'take', colors: ['fire'] })).not.toBeNull();
+    s.bank.water = 0;
+    expect(validate(s, p, { type: 'take', colors: ['fire'] })).toBeNull();
+  });
   it('같은 색 3개나 촉매는 안 된다', () => {
     const s = fresh();
     const p = cur(s);
@@ -87,13 +100,13 @@ describe('토큰 10개 제한', () => {
     const s = fresh();
     const p = cur(s);
     s.players[0].tokens = { ...emptyTokens(), fire: 3, water: 3, life: 3 };
-    const n = apply(s, p, { type: 'take', colors: ['light', 'shadow'] });
+    const n = apply(s, p, { type: 'take', colors: ['light', 'shadow', 'fire'] });
     expect(n.phase).toBe('discard');
     expect(n.turn).toBe(0);
     expect(validate(n, p, { type: 'take', colors: ['fire'] })).not.toBeNull();
-    expect(validate(n, p, { type: 'discard', tokens: { fire: 2 } })).not.toBeNull();
-    expect(validate(n, p, { type: 'discard', tokens: { fire: 1 } })).toBeNull();
-    const m = apply(n, p, { type: 'discard', tokens: { fire: 1 } });
+    expect(validate(n, p, { type: 'discard', tokens: { fire: 3 } })).not.toBeNull();
+    expect(validate(n, p, { type: 'discard', tokens: { fire: 2 } })).toBeNull();
+    const m = apply(n, p, { type: 'discard', tokens: { fire: 2 } });
     expect(tokenTotal(m.players[0].tokens)).toBe(10);
     expect(m.phase).toBe('action');
     expect(m.turn).toBe(1);
@@ -157,6 +170,22 @@ describe('레시피 익히기', () => {
     const pay = paymentFor(player, card)!;
     expect(pay).toEqual({ ...emptyTokens(), water: 1, light: 1, catalyst: 2 });
     expect(paymentFor({ ...player, tokens: { ...player.tokens, catalyst: 1 } }, card)).toBeNull();
+  });
+  it('색 토큰이 있어도 촉매를 대신 낼 수 있다', () => {
+    const s = fresh();
+    const p = cur(s);
+    const id = s.market[1][0]!;
+    const card = CARDS[id];
+    const e = ESSENCES.find((x) => card.cost[x] > 0)!;
+    s.players[0].tokens = { ...emptyTokens(), ...card.cost, catalyst: 1 };
+    const payment = { ...card.cost, [e]: card.cost[e] - 1, catalyst: 1 };
+    expect(validate(s, p, { type: 'buy', cardId: id, payment })).toBeNull();
+    const n = apply(s, p, { type: 'buy', cardId: id, payment });
+    expect(n.players[0].tokens[e]).toBe(1);
+    expect(n.players[0].tokens.catalyst).toBe(0);
+    // 촉매 개수가 안 맞거나, 없는 촉매를 쓰면 거부
+    expect(validate(s, p, { type: 'buy', cardId: id, payment: { ...card.cost, catalyst: 1 } })).not.toBeNull();
+    expect(validate(s, p, { type: 'buy', cardId: id, payment: { ...card.cost, [e]: card.cost[e] - 2, catalyst: 2 } })).not.toBeNull();
   });
   it('사면 토큰이 은행으로 돌아가고 카드가 내 것이 된다', () => {
     const s = fresh();
@@ -277,7 +306,7 @@ describe('봇끼리 끝까지', () => {
           s = alchemyGame.apply(s, p, a);
           // 토큰 총량 보존
           const total = tokenTotal(s.bank) + s.players.reduce((t, x) => t + tokenTotal(x.tokens), 0);
-          expect(total).toBe(5 * (n === 2 ? 4 : n === 3 ? 5 : 6) + 5);
+          expect(total).toBe(5 * (n === 2 ? 4 : n === 3 ? 5 : 7) + 5);
           steps++;
         }
         expect(s.phase).toBe('ended');

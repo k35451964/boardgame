@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { CARDS, ESSENCE_INFO, MAX_RESERVED, MAX_TOKENS } from '../data';
-import { paymentFor } from '../rules';
-import { ESSENCES, TOKEN_COLORS, type AlchemyView, type Card, type PlayerView, type Tier, type TokenColor, type TokenCounts } from '../types';
+import { ESSENCES, TOKEN_COLORS, type AlchemyView, type Card, type Essence, type PlayerView, type Tier, type TokenColor, type TokenCounts } from '../types';
 import { EssenceIcon } from './icons';
 import { CardBack, PatronTile, RecipeCard, Token, tokenSum } from './parts';
 
@@ -39,7 +38,7 @@ export function CardModal({
   me: PlayerView | null;
   view: AlchemyView;
   canAct: boolean;
-  onBuy: (id: string) => void;
+  onBuy: (id: string, payment?: Partial<TokenCounts>) => void;
   onReserve: (id: string) => void;
   onReserveDeck: (tier: Tier) => void;
   onClose: () => void;
@@ -72,11 +71,64 @@ export function CardModal({
   }
 
   const card = CARDS[target.cardId];
-  const pay = me ? paymentFor(me, card) : null;
+  return (
+    <BuyPanel
+      key={card.id}
+      card={card}
+      me={me}
+      canAct={canAct}
+      source={target.source}
+      reserveFull={reserveFull}
+      catalystLeft={catalystLeft}
+      onBuy={onBuy}
+      onReserve={onReserve}
+      onClose={onClose}
+    />
+  );
+}
+
+/** 낼 토큰 계산. extra = 색 토큰 대신 촉매로 낼 개수 */
+function planPayment(card: Card, me: PlayerView, extra: Partial<Record<Essence, number>>) {
+  let catalyst = 0;
+  const lines = ESSENCES.filter((e) => card.cost[e] > 0).map((e) => {
+    const need = Math.max(0, card.cost[e] - me.bonuses[e]);
+    const tokens = Math.min(need, me.tokens[e]) - (extra[e] ?? 0);
+    catalyst += need - tokens;
+    return { e, cost: card.cost[e], bonus: Math.min(me.bonuses[e], card.cost[e]), tokens, catalyst: need - tokens };
+  });
+  const payment: Partial<TokenCounts> = { catalyst };
+  for (const l of lines) payment[l.e] = l.tokens;
+  return { lines, catalyst, affordable: catalyst <= me.tokens.catalyst, payment };
+}
+
+function BuyPanel({
+  card,
+  me,
+  canAct,
+  source,
+  reserveFull,
+  catalystLeft,
+  onBuy,
+  onReserve,
+  onClose,
+}: {
+  card: Card;
+  me: PlayerView | null;
+  canAct: boolean;
+  source: 'market' | 'reserve';
+  reserveFull: boolean;
+  catalystLeft: boolean;
+  onBuy: (id: string, payment?: Partial<TokenCounts>) => void;
+  onReserve: (id: string) => void;
+  onClose: () => void;
+}) {
+  const [extra, setExtra] = useState<Partial<Record<Essence, number>>>({});
+  const plan = me ? planPayment(card, me, extra) : null;
+  const usingExtra = ESSENCES.some((e) => (extra[e] ?? 0) > 0);
   return (
     <Modal title={card.name} onClose={onClose}>
       <div className="card-detail">
-        <RecipeCard card={card} size="lg" bonus={me?.bonuses} affordable={!!pay} />
+        <RecipeCard card={card} size="lg" bonus={me?.bonuses} affordable={!!plan?.affordable} />
         <div className="card-detail-text">
           <p>
             익히면 <b className={`text-ess ess-${card.essence}`}>{ESSENCE_INFO[card.essence].name}</b> 할인 1개
@@ -87,14 +139,75 @@ export function CardModal({
               </>
             )}
           </p>
-          {me && <CostTable card={card} me={me} />}
+          {me && plan && (
+            <table className="cost-table">
+              <thead>
+                <tr>
+                  <th />
+                  <th>필요</th>
+                  <th>할인</th>
+                  <th>토큰</th>
+                  <th>촉매</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plan.lines.map((l) => {
+                  const x = extra[l.e] ?? 0;
+                  const canMore = me.tokens.catalyst > 0 && l.tokens > 0 && plan.catalyst < me.tokens.catalyst;
+                  return (
+                    <tr key={l.e}>
+                      <td>
+                        <span className={`text-ess ess-${l.e}`}>
+                          <EssenceIcon color={l.e} size={14} />
+                        </span>
+                      </td>
+                      <td>{l.cost}</td>
+                      <td>{l.bonus || '·'}</td>
+                      <td>{l.tokens || '·'}</td>
+                      <td className={l.catalyst > 0 && !plan.affordable ? 'is-short' : ''}>
+                        <span className="cat-cell">
+                          {x > 0 && (
+                            <button className="step" aria-label="촉매 덜 쓰기" onClick={() => setExtra({ ...extra, [l.e]: x - 1 })}>
+                              −
+                            </button>
+                          )}
+                          {l.catalyst || '·'}
+                          {canMore && (
+                            <button className="step" aria-label="색 토큰 대신 촉매 쓰기" onClick={() => setExtra({ ...extra, [l.e]: x + 1 })}>
+                              +
+                            </button>
+                          )}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={5}>
+                    {plan.affordable
+                      ? plan.catalyst === 0
+                        ? '촉매 없이 살 수 있어요.'
+                        : `촉매 ${plan.catalyst}개를 써요 (가진 촉매 ${me.tokens.catalyst}개).`
+                      : `촉매를 써도 ${plan.catalyst - me.tokens.catalyst}개가 모자라요.`}
+                    {me.tokens.catalyst > 0 && plan.affordable && <span className="hint"> 촉매 칸의 +로 색 토큰 대신 촉매를 낼 수 있어요.</span>}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
         </div>
       </div>
       <div className="modal-actions">
-        <button className="btn btn-primary" disabled={!canAct || !pay} onClick={() => onBuy(card.id)}>
-          {pay ? '익히기' : '재료가 부족해요'}
+        <button
+          className="btn btn-primary"
+          disabled={!canAct || !plan?.affordable}
+          onClick={() => onBuy(card.id, usingExtra ? plan!.payment : undefined)}
+        >
+          {plan?.affordable ? '익히기' : '재료가 부족해요'}
         </button>
-        {target.source === 'market' && (
+        {source === 'market' && (
           <button className="btn" disabled={!canAct || reserveFull} onClick={() => onReserve(card.id)}>
             {reserveFull ? '예약 칸이 가득 참' : `예약하기${catalystLeft ? ' (+촉매 1)' : ''}`}
           </button>
@@ -102,58 +215,6 @@ export function CardModal({
       </div>
       {!canAct && <p className="hint center">내 차례에만 할 수 있어요.</p>}
     </Modal>
-  );
-}
-
-function CostTable({ card, me }: { card: Card; me: PlayerView }) {
-  const rows = ESSENCES.filter((e) => card.cost[e] > 0);
-  let catalystNeeded = 0;
-  const lines = rows.map((e) => {
-    const need = Math.max(0, card.cost[e] - me.bonuses[e]);
-    const fromTokens = Math.min(need, me.tokens[e]);
-    const short = need - fromTokens;
-    catalystNeeded += short;
-    return { e, cost: card.cost[e], bonus: Math.min(me.bonuses[e], card.cost[e]), fromTokens, short };
-  });
-  const catalystShort = Math.max(0, catalystNeeded - me.tokens.catalyst);
-  return (
-    <table className="cost-table">
-      <thead>
-        <tr>
-          <th />
-          <th>필요</th>
-          <th>할인</th>
-          <th>토큰</th>
-          <th>부족</th>
-        </tr>
-      </thead>
-      <tbody>
-        {lines.map((l) => (
-          <tr key={l.e}>
-            <td>
-              <span className={`text-ess ess-${l.e}`}>
-                <EssenceIcon color={l.e} size={14} />
-              </span>
-            </td>
-            <td>{l.cost}</td>
-            <td>{l.bonus || '·'}</td>
-            <td>{l.fromTokens || '·'}</td>
-            <td className={l.short ? 'is-short' : ''}>{l.short || '·'}</td>
-          </tr>
-        ))}
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colSpan={5}>
-            {catalystNeeded === 0
-              ? '촉매 없이 살 수 있어요.'
-              : catalystShort === 0
-                ? `부족한 ${catalystNeeded}개는 촉매로 채워요.`
-                : `촉매를 써도 ${catalystShort}개가 모자라요.`}
-          </td>
-        </tr>
-      </tfoot>
-    </table>
   );
 }
 

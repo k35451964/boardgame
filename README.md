@@ -83,7 +83,7 @@ src/
 ├─ games/
 │  ├─ registry.ts     게임 목록 (새 게임은 여기에 등록)
 │  └─ alchemy/        생교 연금공방
-│     ├─ data.ts      카드 85장 · 후원자 10명 · 정수 이름
+│     ├─ data.ts      카드 90장 · 후원자 10명 · 정수 이름
 │     ├─ rules.ts     규칙 (시작, 검증, 적용, 화면용 상태)
 │     ├─ bot.ts       컴퓨터 플레이어
 │     ├─ rules.test.ts / balance.sim.ts

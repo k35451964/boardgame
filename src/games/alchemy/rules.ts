@@ -33,6 +33,7 @@ import {
 export const DEFAULT_OPTIONS: AlchemyOptions = { targetScore: 15 };
 export const TARGET_SCORE_CHOICES = [12, 15, 18];
 
+
 // ───────────────────────── 계산 도우미 ─────────────────────────
 
 export function emptyTokens(): TokenCounts {
@@ -69,6 +70,31 @@ export function paymentFor(player: Pick<PlayerState, 'cards' | 'tokens'>, card: 
   }
   if (shortage > player.tokens.catalyst) return null;
   pay.catalyst = shortage;
+  return pay;
+}
+
+/** 직접 고른 지불 방법이 맞는지 검사. 맞으면 실제로 낼 토큰, 틀리면 이유. */
+export function checkPayment(
+  player: Pick<PlayerState, 'cards' | 'tokens'>,
+  card: Card,
+  payment: Partial<TokenCounts>,
+): TokenCounts | string {
+  if (!payment || typeof payment !== 'object') return '잘못된 지불입니다.';
+  const bonus = bonusesOf(player);
+  const pay = emptyTokens();
+  let catalystNeeded = 0;
+  for (const e of ESSENCES) {
+    const need = Math.max(0, card.cost[e] - bonus[e]);
+    const p = payment[e] ?? 0;
+    if (!isInt(p) || p < 0 || p > need) return '잘못된 지불입니다.';
+    if (p > player.tokens[e]) return '재료가 부족합니다.';
+    pay[e] = p;
+    catalystNeeded += need - p;
+  }
+  const cat = payment.catalyst ?? 0;
+  if (cat !== catalystNeeded) return '촉매 개수가 맞지 않습니다.';
+  if (cat > player.tokens.catalyst) return '재료가 부족합니다.';
+  pay.catalyst = cat;
   return pay;
 }
 
@@ -175,6 +201,7 @@ export function validate(state: AlchemyState, playerId: PlayerId, action: Alchem
         return '정수를 1~3개 골라 주세요.';
       }
       const distinct = new Set(colors).size;
+      const available = ESSENCES.filter((e) => state.bank[e] > 0).length;
       if (colors.length === 2 && distinct === 1) {
         if (state.bank[colors[0]] < TAKE_TWO_MIN) {
           return `같은 정수 2개는 은행에 ${TAKE_TWO_MIN}개 이상 남아 있을 때만 가져올 수 있습니다.`;
@@ -183,6 +210,9 @@ export function validate(state: AlchemyState, playerId: PlayerId, action: Alchem
       }
       if (distinct !== colors.length) return '서로 다른 정수를 고르거나, 같은 정수 2개만 골라 주세요.';
       for (const c of colors) if (state.bank[c] < 1) return '은행에 남아 있지 않은 정수입니다.';
+      // 서로 다른 정수는 3개. 은행에 남은 색이 3가지 미만일 때만 남은 색을 모두 가져간다.
+      const required = Math.min(3, available);
+      if (colors.length !== required) return `서로 다른 정수 ${required}개를 골라 주세요.`;
       return null;
     }
     case 'reserve': {
@@ -200,6 +230,10 @@ export function validate(state: AlchemyState, playerId: PlayerId, action: Alchem
       const inMarket = findInMarket(state, action.cardId);
       const inReserve = player.reserved.some((r) => r.cardId === action.cardId);
       if (!inMarket && !inReserve) return '익힐 수 없는 레시피입니다.';
+      if (action.payment !== undefined) {
+        const checked = checkPayment(player, CARDS[action.cardId], action.payment);
+        return typeof checked === 'string' ? checked : null;
+      }
       if (!paymentFor(player, CARDS[action.cardId])) return '재료가 부족합니다.';
       return null;
     }
@@ -280,7 +314,8 @@ export function apply(prev: AlchemyState, playerId: PlayerId, action: AlchemyAct
     }
     case 'buy': {
       const card = CARDS[action.cardId];
-      const pay = paymentFor(player, card)!;
+      const pay =
+        action.payment !== undefined ? (checkPayment(player, card, action.payment) as TokenCounts) : paymentFor(player, card)!;
       for (const c of TOKEN_COLORS) {
         player.tokens[c] -= pay[c];
         state.bank[c] += pay[c];

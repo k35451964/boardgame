@@ -80,14 +80,16 @@ export interface AlchemyState {
 }
 
 export type AlchemyAction =
-  /** 서로 다른 정수 1~3개, 또는 같은 정수 2개 (은행에 4개 이상 있을 때) */
+  /** 서로 다른 정수 3개 (은행에 남은 색이 3가지 미만이면 남은 색 모두), 또는 같은 정수 2개 (은행에 4개 이상 있을 때) */
   | { type: 'take'; colors: Essence[] }
   /** 진열된 레시피 예약 */
   | { type: 'reserve'; cardId: string }
   /** 덱 맨 위 레시피를 몰래 예약 */
   | { type: 'reserveDeck'; tier: Tier }
-  /** 진열된 레시피 또는 내가 예약한 레시피 익히기 */
-  | { type: 'buy'; cardId: string }
+  /** 진열된 레시피 또는 내가 예약한 레시피 익히기.
+   *  payment를 생략하면 색 토큰을 먼저 쓰고 모자란 만큼 촉매를 쓴다.
+   *  직접 주면 색 토큰 대신 촉매를 더 낼 수 있다. */
+  | { type: 'buy'; cardId: string; payment?: Partial<TokenCounts> }
   /** 토큰이 10개를 넘으면 반납 */
   | { type: 'discard'; tokens: Partial<TokenCounts> }
   | { type: 'choosePatron'; patronId: string }

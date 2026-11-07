@@ -57,6 +57,8 @@ export function botAction(state: AlchemyState, playerId: PlayerId, random: () =>
 
   // 3) 정수 가져오기
   const room = MAX_TOKENS - tokenTotal(me.tokens);
+  // 토큰이 꽉 찼으면 가져와도 반납해야 하므로, 살 수 있는 게 있으면 그냥 산다 (가져왔다 반납하는 반복 방지)
+  if (room <= 0 && bestBuy) return { type: 'buy', cardId: bestBuy.card.id };
   const take = chooseTokens(state, me, bonus, ranked.map((r) => r.card), Math.max(room, 0));
   if (take.length > 0 && validate(state, playerId, { type: 'take', colors: take }) === null) {
     // 토큰이 꽉 차 가는데 목표가 비싼 카드면 예약해서 촉매를 받는 편이 낫다
@@ -79,9 +81,9 @@ export function botAction(state: AlchemyState, playerId: PlayerId, random: () =>
   }
 
   // 5) 아무 정수라도
-  const any = ESSENCES.filter((e) => state.bank[e] > 0).slice(0, Math.min(3, Math.max(room, 1)));
-  if (any.length > 0) return { type: 'take', colors: any };
   if (bestBuy) return { type: 'buy', cardId: bestBuy.card.id };
+  const any = ESSENCES.filter((e) => state.bank[e] > 0).slice(0, 3);
+  if (any.length > 0) return { type: 'take', colors: any };
   return { type: 'pass' };
 }
 
@@ -143,10 +145,12 @@ function chooseTokens(
     const miss = missingFor(me, bonus, card);
     for (const e of ESSENCES) if (miss[e] > 0) weight[e] += (3 - i) * Math.min(miss[e], 3);
   });
-  const picks = ESSENCES.filter((e) => state.bank[e] > 0 && weight[e] > 0)
-    .sort((a, b) => weight[b] - weight[a])
-    .slice(0, Math.min(3, room));
-  return picks;
+  const available = ESSENCES.filter((e) => state.bank[e] > 0);
+  if (!available.some((e) => weight[e] > 0)) return [];
+  // 규칙상 서로 다른 색은 3개(남은 색이 적으면 남은 만큼)를 가져가야 하므로, 덜 필요한 색으로 채운다
+  return available
+    .sort((a, b) => weight[b] - weight[a] || state.bank[b] - state.bank[a])
+    .slice(0, Math.min(3, available.length));
 }
 
 function chooseDiscard(state: AlchemyState, me: PlayerState): Partial<TokenCounts> {

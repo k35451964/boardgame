@@ -15,6 +15,11 @@ function takeProblem(view: AlchemyView, sel: Essence[]): string | null {
   if (sel.length === 2 && sel[0] === sel[1]) {
     return view.bank[sel[0]] >= TAKE_TWO_MIN ? null : `같은 정수 2개는 은행에 ${TAKE_TWO_MIN}개 이상 있을 때만 돼요.`;
   }
+  const required = Math.min(3, ESSENCES.filter((e) => view.bank[e] > 0).length);
+  if (sel.length < required) {
+    const canDouble = sel.length === 1 && view.bank[sel[0]] >= TAKE_TWO_MIN;
+    return `서로 다른 정수 ${required}개를 골라 주세요.${canDouble ? ' (같은 정수를 한 번 더 누르면 2개)' : ''}`;
+  }
   return null;
 }
 
@@ -319,7 +324,7 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
           me={me}
           view={view}
           canAct={isMyTurn && view.phase === 'action'}
-          onBuy={(id) => act({ type: 'buy', cardId: id })}
+          onBuy={(id, payment) => act({ type: 'buy', cardId: id, ...(payment ? { payment } : {}) })}
           onReserve={(id) => act({ type: 'reserve', cardId: id })}
           onReserveDeck={(tier) => act({ type: 'reserveDeck', tier })}
           onClose={() => setTarget(null)}
