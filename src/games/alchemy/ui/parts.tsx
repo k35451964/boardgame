@@ -70,11 +70,12 @@ export function RecipeCard({
   onClick?: () => void;
   affordable?: boolean;
   bonus?: Record<Essence, number>;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }) {
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag
+      title={card.name}
       className={`card card-${size} tier-${card.tier} ess-${card.essence} ${affordable ? 'can-buy' : ''}`}
       onClick={onClick}
       type={onClick ? 'button' : undefined}
@@ -83,7 +84,7 @@ export function RecipeCard({
       <span className="card-top">
         <span className="card-points">{card.points > 0 ? card.points : ''}</span>
         <span className="card-gem">
-          <EssenceIcon color={card.essence} size={size === 'sm' ? 14 : size === 'lg' ? 26 : 18} />
+          <EssenceIcon color={card.essence} size={size === 'xs' ? 11 : size === 'sm' ? 14 : size === 'lg' ? 26 : 18} />
         </span>
       </span>
       <CardArt card={card} />

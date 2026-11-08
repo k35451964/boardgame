@@ -7,7 +7,8 @@ import { paymentFor } from '../rules';
 import { ESSENCES, TIERS, type AlchemyAction, type AlchemyView, type Essence, type Tier } from '../types';
 import { describeLog } from './format';
 import { CardModal, DiscardModal, PatronModal, type CardTarget } from './modals';
-import { CardBack, Holdings, PatronTile, PlayerPanel, RecipeCard, Token, tokenSum } from './parts';
+import { CardBack, PatronTile, PlayerPanel, RecipeCard, Token, tokenSum } from './parts';
+import { MyTableau } from './tableau';
 import { useTurnAlert } from './useTurnAlert';
 
 function takeProblem(view: AlchemyView, sel: Essence[]): string | null {
@@ -34,7 +35,7 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
 
   const [selection, setSelection] = useState<Essence[]>([]);
   const [target, setTarget] = useState<CardTarget | null>(null);
-  const [sideTab, setSideTab] = useState<'log' | 'chat'>('log');
+  const [chatOpen, setChatOpen] = useState(false);
   const [showResult, setShowResult] = useState(true);
   const [seenChat, setSeenChat] = useState(snapshot.chat.length);
 
@@ -57,8 +58,8 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
   }, [snapshot.version, view.market, me, isMyTurn]);
 
   useEffect(() => {
-    if (sideTab === 'chat') setSeenChat(snapshot.chat.length);
-  }, [sideTab, snapshot.chat.length]);
+    if (chatOpen) setSeenChat(snapshot.chat.length);
+  }, [chatOpen, snapshot.chat.length]);
 
   const act = (action: AlchemyAction) => client.act(action);
 
@@ -122,7 +123,13 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
           </span>
           {!snapshot.local && <span className="alc-code">방 {snapshot.code}</span>}
         </div>
-        <span />
+        {snapshot.local ? (
+          <span />
+        ) : (
+          <button className="btn btn-ghost btn-small chat-toggle" onClick={() => setChatOpen(!chatOpen)}>
+            채팅{unreadChat > 0 && !chatOpen && <span className="badge">{unreadChat}</span>}
+          </button>
+        )}
       </header>
 
       <div className={`turn-banner ${isMyTurn ? 'is-mine' : ''} ${view.finalRound && !ended ? 'is-final' : ''}`} role="status">
@@ -212,19 +219,17 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
                   {nameOf(me.id)} <span className="chip chip-me">나</span>
                   {view.players[0].id === me.id && <span className="chip">선</span>}
                 </span>
-                <span className="my-stats">
-                  토큰 <b className={tokenSum(me.tokens) >= MAX_TOKENS ? 'warn' : ''}>{tokenSum(me.tokens)}</b>/10 · 쌤{' '}
-                  {me.patrons.length}
-                </span>
+                <span className="my-stats">쌤 {me.patrons.length}</span>
                 <span className="player-points" key={me.points}>
                   {me.points}
                   <small>점</small>
                 </span>
               </div>
               <div className="my-body">
-                <Holdings player={me} />
+                <MyTableau player={me} />
+                <p className="tab-label">예약 <b>{me.reserved.length}</b>/3</p>
                 <div className="my-reserved">
-                  {me.reserved.length === 0 && <span className="hint">예약한 카드 없음 (최대 3장)</span>}
+                  {me.reserved.length === 0 && <span className="hint">예약한 카드 없음</span>}
                   {me.reserved.map((r) =>
                     r.cardId ? (
                       <RecipeCard
@@ -238,6 +243,7 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
                     ) : null,
                   )}
                 </div>
+                {me.patrons.length > 0 && <p className="tab-label">나를 눈여겨본 쌤</p>}
                 {me.patrons.length > 0 && (
                   <div className="my-patrons">
                     {me.patrons.map((id) => (
@@ -290,33 +296,21 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
               <p className="hint center">관전 중이에요.</p>
             </section>
           )}
-          <aside className="alc-side">
-            <div className="tabs" role="tablist">
-              <button role="tab" aria-selected={sideTab === 'log'} className={sideTab === 'log' ? 'is-on' : ''} onClick={() => setSideTab('log')}>
-                기록
-              </button>
-              {!snapshot.local && (
-                <button role="tab" aria-selected={sideTab === 'chat'} className={sideTab === 'chat' ? 'is-on' : ''} onClick={() => setSideTab('chat')}>
-                  채팅{unreadChat > 0 && sideTab !== 'chat' && <span className="badge">{unreadChat}</span>}
-                </button>
-              )}
-            </div>
-            {sideTab === 'log' ? (
-              <ol className="log" reversed>
-                {[...view.log].reverse().map((entry, i) => (
-                  <li key={view.log.length - i} className={`log-${entry.kind}`}>
-                    {describeLog(entry, nameOf)}
-                  </li>
-                ))}
-                {view.log.length === 0 && <li className="hint">첫 수를 기다리는 중...</li>}
-              </ol>
-            ) : (
-              <ChatBox messages={snapshot.chat} onSend={(t) => client.chat(t)} />
-            )}
-          </aside>
         </div>
       </div>
 
+
+      {chatOpen && !snapshot.local && (
+        <div className="chat-drawer" role="dialog" aria-label="채팅">
+          <div className="modal-head">
+            <h2>채팅</h2>
+            <button className="btn btn-ghost btn-small" onClick={() => setChatOpen(false)} aria-label="채팅 닫기">
+              ✕
+            </button>
+          </div>
+          <ChatBox messages={snapshot.chat} onSend={(t) => client.chat(t)} />
+        </div>
+      )}
 
       {target && (
         <CardModal
