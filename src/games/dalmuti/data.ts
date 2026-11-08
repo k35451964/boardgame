@@ -7,12 +7,12 @@ export interface RankInfo {
   tag?: string;
 }
 
-/** 순서는 무작위로 정했다. 단, 농노(유미)는 가장 약하고 가장 많은 12번 */
+/** 순서는 무작위로 정했다. 단, 인간은 가장 강한 1번, 농노(유미)는 가장 약하고 가장 많은 12번 */
 export const RANKS: RankInfo[] = [
-  { rank: 1, name: '하마', emoji: '🦛' },
+  { rank: 1, name: '인간', emoji: '🧑' },
   { rank: 2, name: '호랑이', emoji: '🐅' },
   { rank: 3, name: '장수풍뎅이', emoji: '🪲' },
-  { rank: 4, name: '인간', emoji: '🧑' },
+  { rank: 4, name: '하마', emoji: '🦛' },
   { rank: 5, name: '벌꿀오소리', emoji: '🦡' },
   { rank: 6, name: '상어', emoji: '🦈' },
   { rank: 7, name: '북극곰', emoji: '🐻‍❄️' },
