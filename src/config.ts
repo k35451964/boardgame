@@ -7,11 +7,11 @@ export const SITE_TITLE = '생교 보드게임';
  * 이 값들은 웹사이트에 공개돼도 괜찮다 (데이터 보호는 database.rules.json 이 맡는다).
  */
 export const FIREBASE_CONFIG = {
-  apiKey: '',
-  authDomain: '',
-  databaseURL: '',
-  projectId: '',
-  appId: '',
+  apiKey: 'AIzaSyDXnysqQHmCfVkfpXH4JvEyFirxzjpNkQU',
+  authDomain: 'boradgame-a2237.firebaseapp.com',
+  databaseURL: 'https://boradgame-a2237-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId: 'boradgame-a2237',
+  appId: '1:1085439938888:web:a5619d004511156ddc237d',
 };
 
 export interface GameEntry {
