@@ -90,7 +90,7 @@ export class LocalRoom implements RoomClient {
   }
 
   private tryAction(player: PlayerId, action: unknown): string | null {
-    if (!this.state || this.status() !== 'playing') return '게임이 진행 중이 아니에요.';
+    if (!this.state) return '게임이 진행 중이 아니에요.';
     let err: string | null;
     try {
       err = this.game.validate(this.state, player, action);

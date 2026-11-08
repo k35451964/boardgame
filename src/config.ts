@@ -33,11 +33,11 @@ export const GAMES: GameEntry[] = [
     ready: true,
   },
   {
-    id: 'next',
-    title: '다음 게임',
-    tagline: '곧 추가될 예정이에요.',
-    players: '',
-    minutes: '',
-    ready: false,
+    id: 'dalmuti',
+    title: '생무티',
+    tagline: '하마, 호랑이, 장수풍뎅이, 인간… 손에 든 카드를 가장 먼저 다 내는 사람이 다음 판의 대왕! 꼴찌는 좋은 카드를 바쳐야 해요.',
+    players: '4~8명',
+    minutes: '판당 10~15분',
+    ready: true,
   },
 ];

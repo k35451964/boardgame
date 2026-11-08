@@ -28,4 +28,27 @@ export interface GameDefinition<State, Action, View, Options> {
   result(state: State): GameResult | null;
   /** 컴퓨터 플레이어의 다음 행동. */
   bot?(state: State, player: PlayerId, random: () => number): Action;
+  /** 판/게임이 끝났을 때 채팅에 띄울 문장 */
+  announce?(state: State, nameOf: (id: PlayerId) => string): string | null;
+  /** 연결이 끊긴 사람 대신 둘 행동 (손패를 몰라도 할 수 있는 것). 없으면 bot을 쓴다. */
+  substitute?(state: State, player: PlayerId): Action | null;
+  /** 손패처럼 각자만 봐야 하는 정보가 있는 게임 (온라인에서 따로 저장) */
+  secret?: SecretAdapter<State, Action>;
+}
+
+/** 손패 변화: 새로 나누기(replaceAll) 또는 카드 옮기기(transfers) */
+export interface HandOps {
+  replaceAll?: Record<PlayerId, string[]>;
+  transfers: { from: PlayerId | null; to: PlayerId | null; cards: string[] }[];
+  /** 손패를 통째로 비울 사람 */
+  clear?: PlayerId[];
+}
+
+export interface SecretAdapter<State, Action> {
+  /** 공개 상태와 손패로 나눈다 */
+  split(state: State): { pub: unknown; hands: Record<PlayerId, string[]> };
+  /** 공개 상태 + 아는 손패로 상태를 다시 만든다. 모르는 손패는 장수만큼 '?' */
+  merge(pub: unknown, known: Record<PlayerId, string[] | undefined>): State;
+  /** 이 행동으로 손패가 어떻게 바뀌는지 */
+  handOps(prev: State, next: State, player: PlayerId, action: Action): HandOps;
 }

@@ -15,24 +15,40 @@
           "$seatId": {
             ".write": "auth != null && newData.parent().parent().child('meta').exists() && (newData.parent().parent().child('meta/hostUid').val() === auth.uid || $seatId === auth.uid)",
             ".validate": "newData.hasChildren(['name', 'bot', 'order']) && newData.child('name').isString() && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 12 && newData.child('bot').isBoolean() && (newData.child('bot').val() === false || newData.parent().parent().child('meta/hostUid').val() === auth.uid) && newData.child('order').isNumber()",
-            "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12" },
-            "bot": { ".validate": "newData.isBoolean()" },
-            "order": { ".validate": "newData.isNumber()" },
-            "$other": { ".validate": false }
+            "name": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12"
+            },
+            "bot": {
+              ".validate": "newData.isBoolean()"
+            },
+            "order": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
           }
         },
         "game": {
           ".write": "auth != null && (newData.exists() ? newData.parent().child('seats').child(auth.uid).exists() : newData.parent().child('meta/hostUid').val() === auth.uid)",
           ".validate": "newData.hasChildren(['json', 'version']) && (!data.exists() || newData.child('version').val() === data.child('version').val() + 1)",
-          "json": { ".validate": "newData.isString() && newData.val().length < 200000" },
-          "version": { ".validate": "newData.isNumber()" },
-          "$other": { ".validate": false }
+          "json": {
+            ".validate": "newData.isString() && newData.val().length < 200000"
+          },
+          "version": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
         },
         "chat": {
           "$msgId": {
             ".write": "auth != null && !data.exists() && newData.parent().parent().child('meta').exists()",
             ".validate": "newData.hasChildren(['uid', 'from', 'text', 'at']) && newData.child('uid').val() === auth.uid && newData.child('from').isString() && newData.child('from').val().length <= 20 && newData.child('text').isString() && newData.child('text').val().length >= 1 && newData.child('text').val().length <= 200 && newData.child('at').isNumber()",
-            "system": { ".validate": "newData.isBoolean()" }
+            "system": {
+              ".validate": "newData.isBoolean()"
+            }
           }
         },
         "presence": {
@@ -41,7 +57,21 @@
             ".validate": "newData.isBoolean()"
           }
         },
-        "$other": { ".validate": false }
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "hands": {
+      "$code": {
+        ".write": "auth != null && root.child('rooms/'+$code+'/meta/hostUid').val() === auth.uid && !newData.exists()",
+        "$pid": {
+          ".read": "auth != null && ($pid === auth.uid || (root.child('rooms/'+$code+'/seats/'+$pid+'/bot').val() === true && root.child('rooms/'+$code+'/seats/'+auth.uid).exists()))",
+          ".write": "auth != null && root.child('rooms/'+$code+'/seats/'+auth.uid).exists()",
+          "$card": {
+            ".validate": "newData.val() === true && $card.matches(/^(r([1-9]|1[0-2])-([0-9]|1[01])|j-[12])$/)"
+          }
+        }
       }
     }
   }

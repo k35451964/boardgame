@@ -48,9 +48,9 @@ export function Home() {
     navigate(`/room/${c}`);
   };
 
-  const practice = () => {
+  const practice = (gameId: string) => {
     if (!ensureName()) return;
-    navigate('/local');
+    navigate(`/local/${gameId}`);
   };
 
   return (
@@ -99,10 +99,10 @@ export function Home() {
                 <button className="btn btn-primary" onClick={() => createRoom(g.id)} disabled={!online || creating}>
                   {creating ? '방 만드는 중...' : '방 만들기'}
                 </button>
-                <button className="btn" onClick={practice}>
+                <button className="btn" onClick={() => practice(g.id)}>
                   봇과 연습
                 </button>
-                <button className="btn btn-ghost" onClick={() => navigate('/rules')}>
+                <button className="btn btn-ghost" onClick={() => navigate(`/rules/${g.id}`)}>
                   규칙 보기
                 </button>
               </div>

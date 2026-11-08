@@ -38,6 +38,7 @@ export function uniqueName(name: string, usedNames: string[]): string {
 }
 
 export function winnerText(game: AnyGame, state: unknown, nameOf: (id: PlayerId) => string): string | null {
+  if (game.announce) return game.announce(state, nameOf);
   const result = game.result(state);
   if (!result) return null;
   return `게임 끝! 승리: ${result.winners.map(nameOf).join(', ')}`;

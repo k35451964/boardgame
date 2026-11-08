@@ -10,6 +10,7 @@ import {
   update,
   type DatabaseReference,
 } from 'firebase/database';
+import type { HandOps } from '../engine/types';
 import { createRng, randomSeed } from '../engine/rng';
 import type { PlayerId } from '../engine/types';
 import { BOT_DELAY_MS, MAX_CHAT, makeRoomCode, pickBotName, randomId, uniqueName, winnerText, type AnyGame } from './common';
@@ -93,6 +94,12 @@ export class FirebaseRoom implements RoomClient {
   private presenceOn = false;
   private state: unknown = null;
   private stateVersion = -1;
+  /** 손패를 따로 저장하는 게임: 공개 상태와 내가 아는 손패 */
+  private pub: unknown = null;
+  private pubVersion = -1;
+  private knownHands: Record<string, string[]> = {};
+  private staleTimer: ReturnType<typeof setTimeout> | null = null;
+  private handUnsubs = new Map<string, () => void>();
   private listeners = new Set<() => void>();
   private unsubs: (() => void)[] = [];
   private snapshot: RoomSnapshot;
@@ -123,6 +130,11 @@ export class FirebaseRoom implements RoomClient {
   async act(action: unknown) {
     const me = this.snapshot.myId;
     if (!me) return this.onError?.('관전 중에는 둘 수 없어요.');
+    if (this.game.secret) {
+      const err = await this.commitSecret(me, action);
+      if (err) this.onError?.(err);
+      return;
+    }
     let error: string | null = null;
     try {
       const res = await runTransaction(this.ref('game'), (cur: RoomData['game'] | null) => {
@@ -165,13 +177,16 @@ export class FirebaseRoom implements RoomClient {
     if (this.botTimer) clearTimeout(this.botTimer);
     for (const u of this.unsubs) u();
     this.unsubs = [];
+    for (const u of this.handUnsubs.values()) u();
+    this.handUnsubs.clear();
+    if (this.staleTimer) clearTimeout(this.staleTimer);
     if (this.uid && this.presenceOn) void remove(this.ref(`presence/${this.uid}`)).catch(() => {});
   }
 
   /** 방장 전용: 방을 완전히 지운다. 다른 사람들에게는 "방이 닫혔어요"가 뜬다. */
   async destroy() {
     try {
-      await remove(this.ref(''));
+      await update(ref(database()), { [`rooms/${this.code}`]: null, [`hands/${this.code}`]: null });
     } catch {
       this.onError?.('방을 닫지 못했어요.');
     }
@@ -189,11 +204,24 @@ export class FirebaseRoom implements RoomClient {
     const state = this.game.setup(players, this.data?.options ?? this.game.defaultOptions, randomSeed());
     try {
       const cur = this.data?.game;
-      await set(this.ref('game'), { json: JSON.stringify(state), version: cur ? cur.version + 1 : 1 });
+      const version = cur ? cur.version + 1 : 1;
+      if (this.game.secret) {
+        const { pub, hands } = this.game.secret.split(state);
+        await update(ref(database()), {
+          [`rooms/${this.code}/game`]: { json: JSON.stringify(pub), version },
+          ...this.handWrites({ replaceAll: hands, transfers: [] }),
+        });
+      } else {
+        await set(this.ref('game'), { json: JSON.stringify(state), version });
+      }
       this.systemChat('게임을 시작합니다!');
     } catch (e) {
       console.error(e);
-      this.onError?.('게임을 시작하지 못했어요.');
+      this.onError?.(
+        this.game.secret
+          ? '게임을 시작하지 못했어요. Firebase 콘솔의 데이터베이스 규칙을 최신 database.rules.json 으로 다시 게시했는지 확인해 주세요.'
+          : '게임을 시작하지 못했어요.',
+      );
     }
   }
 
@@ -228,12 +256,134 @@ export class FirebaseRoom implements RoomClient {
     const seat = this.data?.seats?.[playerId];
     if (!seat || seat.bot || this.data?.presence?.[playerId]) return;
     if (this.game.activePlayer(this.state) !== playerId) return;
+    if (this.game.secret) {
+      // 손패를 모르므로, 손패 없이도 할 수 있는 행동(넘기기 등)만 대신 한다
+      const action = this.game.substitute?.(this.state, playerId);
+      if (action) void this.commitSecret(playerId, action).then((err) => err && this.onError?.(err));
+      return;
+    }
     void this.runBot(playerId, this.stateVersion, false);
   }
 
   backToLobby() {
     if (!this.isHost() || this.status() !== 'ended') return;
-    void remove(this.ref('game'));
+    if (this.game.secret) void update(ref(database()), { [`rooms/${this.code}/game`]: null, [`hands/${this.code}`]: null });
+    else void remove(this.ref('game'));
+  }
+
+  // ───────── 손패를 따로 저장하는 게임 ─────────
+
+  /** 내 손패와 (자리에 앉아 있다면) 봇 손패를 구독한다 */
+  private syncHandSubscriptions() {
+    const uid = this.uid;
+    if (!uid) return;
+    const seated = !!this.data?.seats?.[uid];
+    const want = new Set<string>([uid]);
+    if (seated) for (const [id, s] of Object.entries(this.data?.seats ?? {})) if (s.bot) want.add(id);
+    for (const [id, unsub] of this.handUnsubs) {
+      if (!want.has(id)) {
+        unsub();
+        this.handUnsubs.delete(id);
+        delete this.knownHands[id];
+      }
+    }
+    for (const id of want) {
+      if (this.handUnsubs.has(id)) continue;
+      const unsub = onValue(
+        ref(database(), `hands/${this.code}/${id}`),
+        (snap) => {
+          this.knownHands[id] = Object.keys((snap.val() as Record<string, boolean> | null) ?? {});
+          this.rebuildSecretState();
+          this.refresh();
+          this.scheduleBot();
+        },
+        () => {
+          /* 읽을 권한이 없는 손패는 무시 */
+        },
+      );
+      this.handUnsubs.set(id, unsub);
+    }
+  }
+
+  /**
+   * 공개 상태(장수)와 손패는 따로 도착한다. 둘이 맞을 때만 상태를 새로 만든다.
+   * (안 맞는 사이에 행동하면 낡은 상태로 계산하게 되므로, 버전도 함께 맞춘다)
+   */
+  private rebuildSecretState(force = false) {
+    if (!this.pub || !this.game.secret) {
+      this.state = null;
+      return;
+    }
+    const counts = (this.pub as { handCounts?: Record<string, number> }).handCounts ?? {};
+    const consistent = Object.entries(this.knownHands).every(([p, h]) => counts[p] === undefined || counts[p] === h.length);
+    if (!consistent && !force && this.state) {
+      if (!this.staleTimer) {
+        this.staleTimer = setTimeout(() => {
+          this.staleTimer = null;
+          this.rebuildSecretState(true);
+          this.refresh();
+          this.scheduleBot();
+        }, 2500);
+      }
+      return;
+    }
+    if (this.staleTimer) {
+      clearTimeout(this.staleTimer);
+      this.staleTimer = null;
+    }
+    this.state = this.game.secret.merge(this.pub, this.knownHands);
+    this.stateVersion = this.pubVersion;
+  }
+
+  /** 손패 변화를 DB 쓰기 목록으로 */
+  private handWrites(ops: HandOps): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    const base = `hands/${this.code}`;
+    const cleared = new Set(ops.clear ?? []);
+    if (ops.replaceAll) {
+      for (const [p, cards] of Object.entries(ops.replaceAll)) {
+        out[`${base}/${p}`] = cards.length ? Object.fromEntries(cards.map((c) => [c, true])) : null;
+      }
+      return out;
+    }
+    for (const p of cleared) out[`${base}/${p}`] = null;
+    for (const t of ops.transfers) {
+      for (const c of t.cards) {
+        if (c === '?') continue;
+        if (t.from && !cleared.has(t.from)) out[`${base}/${t.from}/${c}`] = null;
+        if (t.to && !cleared.has(t.to)) out[`${base}/${t.to}/${c}`] = true;
+      }
+    }
+    return out;
+  }
+
+  /** 행동을 검사하고, 공개 상태와 손패 변화를 한 번에(원자적으로) 저장한다. 실패하면 이유를 돌려준다 */
+  private async commitSecret(player: PlayerId, action: unknown): Promise<string | null> {
+    const secret = this.game.secret!;
+    const prev = this.state;
+    if (!prev) return '게임 정보를 아직 받지 못했어요.';
+    let error: string | null;
+    try {
+      error = this.game.validate(prev, player, action);
+    } catch {
+      error = '잘못된 행동입니다.';
+    }
+    if (error) return error;
+    const next = this.game.apply(prev, player, action);
+    const { pub } = secret.split(next);
+    const updates = {
+      [`rooms/${this.code}/game`]: { json: JSON.stringify(pub), version: this.stateVersion + 1 },
+      ...this.handWrites(secret.handOps(prev, next, player, action)),
+    };
+    try {
+      await update(ref(database()), updates);
+    } catch (e) {
+      console.warn(e);
+      // 같은 순간에 다른 사람이 먼저 저장하면 버전 검사에 걸린다
+      return '다른 사람이 먼저 움직였어요. 다시 해 주세요.';
+    }
+    this.afterCommitState(next);
+    return null;
   }
 
   // ───────── 내부 ─────────
@@ -295,14 +445,26 @@ export class FirebaseRoom implements RoomClient {
 
     if (data.game && data.game.version !== this.stateVersion) {
       try {
-        this.state = JSON.parse(data.game.json);
-        this.stateVersion = data.game.version;
+        const parsed = JSON.parse(data.game.json);
+        if (this.game.secret) {
+          this.pub = parsed;
+          this.pubVersion = data.game.version;
+        } else {
+          this.state = parsed;
+          this.stateVersion = data.game.version;
+        }
       } catch {
         console.error('게임 상태를 읽지 못했어요');
       }
     } else if (!data.game) {
       this.state = null;
+      this.pub = null;
       this.stateVersion = -1;
+      this.pubVersion = -1;
+    }
+    if (this.game.secret) {
+      this.syncHandSubscriptions();
+      this.rebuildSecretState();
     }
 
     this.maybeJoin();
@@ -373,13 +535,16 @@ export class FirebaseRoom implements RoomClient {
   private afterCommit(game: RoomData['game'] | null) {
     if (!game) return;
     try {
-      const state = JSON.parse(game.json);
-      if (this.game.activePlayer(state) === null) {
-        const text = winnerText(this.game, state, (id) => this.data?.seats?.[id]?.name ?? '?');
-        if (text) this.systemChat(text);
-      }
+      this.afterCommitState(JSON.parse(game.json));
     } catch {
       /* 무시 */
+    }
+  }
+
+  private afterCommitState(state: unknown) {
+    if (this.game.activePlayer(state) === null) {
+      const text = winnerText(this.game, state, (id) => this.data?.seats?.[id]?.name ?? '?');
+      if (text) this.systemChat(text);
     }
   }
 
@@ -409,8 +574,9 @@ export class FirebaseRoom implements RoomClient {
     const uid = this.uid;
     if (!uid || !this.data) return null;
     if (this.state) {
-      const players = (this.state as { players?: { id: string }[] }).players ?? [];
-      return players.some((p) => p.id === uid) ? uid : null;
+      const st = this.state as { players?: { id: string }[]; seats?: string[] };
+      const ids = st.players?.map((p) => p.id) ?? st.seats ?? [];
+      return ids.includes(uid) ? uid : null;
     }
     return this.playerSeats().some((s) => s.id === uid) ? uid : null;
   }
@@ -437,6 +603,15 @@ export class FirebaseRoom implements RoomClient {
   }
 
   private async runBot(botId: string, expectedVersion: number, continueBots = true) {
+    if (this.game.secret) {
+      if (expectedVersion === this.stateVersion && this.state && this.game.activePlayer(this.state) === botId) {
+        const action = this.game.bot!(this.state, botId, this.botRandom);
+        const err = await this.commitSecret(botId, action);
+        if (err) console.warn('봇 행동 저장 실패', err);
+      }
+      if (continueBots) this.scheduleBot();
+      return;
+    }
     try {
       const res = await runTransaction(this.ref('game'), (cur: RoomData['game'] | null) => {
         if (!cur) return cur;
