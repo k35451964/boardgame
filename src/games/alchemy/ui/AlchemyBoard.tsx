@@ -11,14 +11,14 @@ import { CardBack, Holdings, PatronTile, PlayerPanel, RecipeCard, Token, tokenSu
 import { useTurnAlert } from './useTurnAlert';
 
 function takeProblem(view: AlchemyView, sel: Essence[]): string | null {
-  if (sel.length === 0) return '정수를 골라 주세요.';
+  if (sel.length === 0) return '토큰을 골라 주세요.';
   if (sel.length === 2 && sel[0] === sel[1]) {
-    return view.bank[sel[0]] >= TAKE_TWO_MIN ? null : `같은 정수 2개는 은행에 ${TAKE_TWO_MIN}개 이상 있을 때만 돼요.`;
+    return view.bank[sel[0]] >= TAKE_TWO_MIN ? null : `같은 토큰 2개는 은행에 ${TAKE_TWO_MIN}개 이상 있을 때만 돼요.`;
   }
   const required = Math.min(3, ESSENCES.filter((e) => view.bank[e] > 0).length);
   if (sel.length < required) {
     const canDouble = sel.length === 1 && view.bank[sel[0]] >= TAKE_TWO_MIN;
-    return `서로 다른 정수 ${required}개를 골라 주세요.${canDouble ? ' (같은 정수를 한 번 더 누르면 2개)' : ''}`;
+    return `서로 다른 토큰 ${required}개를 골라 주세요.${canDouble ? ' (같은 토큰을 한 번 더 누르면 2개)' : ''}`;
   }
   return null;
 }
@@ -101,7 +101,7 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
       view.phase === 'discard'
         ? '토큰을 반납하세요'
         : view.phase === 'patron'
-          ? '후원자를 고르세요'
+          ? '쌤을 고르세요'
           : '내 차례예요!';
   } else status = `${nameOf(active.id)} 님 차례`;
 
@@ -154,15 +154,15 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
             ))}
           </div>
 
-          <div className="patrons-row" aria-label="후원자">
-            <span className="row-label">후원자</span>
+          <div className="patrons-row" aria-label="쌤">
+            <span className="row-label">쌤</span>
             {view.patrons.map((id) => (
               <PatronTile key={id} id={id} size="sm" />
             ))}
-            {view.patrons.length === 0 && <span className="hint">모든 후원자가 떠났어요.</span>}
+            {view.patrons.length === 0 && <span className="hint">모든 쌤이 떠났어요.</span>}
           </div>
 
-          <div className="market" aria-label="레시피 진열대">
+          <div className="market" aria-label="카드 진열대">
             {([3, 2, 1] as Tier[]).map((tier) => (
               <div key={tier} className="market-row">
                 <CardBack
@@ -187,7 +187,7 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
             ))}
           </div>
 
-          <div className="bank" aria-label="정수 은행">
+          <div className="bank" aria-label="토큰 은행">
             {ESSENCES.map((e) => (
               <Token
                 key={e}
@@ -197,23 +197,23 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
                 selected={selection.filter((x) => x === e).length}
                 disabled={!isMyTurn || view.phase !== 'action' || (view.bank[e] === 0 && !selection.includes(e))}
                 onClick={() => clickBank(e)}
-                label={`${ESSENCE_INFO[e].name} 정수, 은행에 ${view.bank[e]}개`}
+                label={`${ESSENCE_INFO[e].name} 토큰, 은행에 ${view.bank[e]}개`}
               />
             ))}
-            <Token color="catalyst" size="lg" count={view.bank.catalyst} label={`촉매, 은행에 ${view.bank.catalyst}개`} />
+            <Token color="joker" size="lg" count={view.bank.joker} label={`생교, 은행에 ${view.bank.joker}개`} />
           </div>
         </section>
 
         <div className="alc-right">
           {me ? (
-            <section className={`my-area ${isMyTurn ? 'is-active' : ''}`} aria-label="내 공방">
+            <section className={`my-area ${isMyTurn ? 'is-active' : ''}`} aria-label="내 도감">
               <div className="my-head">
                 <span className="player-name">
                   {nameOf(me.id)} <span className="chip chip-me">나</span>
                   {view.players[0].id === me.id && <span className="chip">선</span>}
                 </span>
                 <span className="my-stats">
-                  토큰 <b className={tokenSum(me.tokens) >= MAX_TOKENS ? 'warn' : ''}>{tokenSum(me.tokens)}</b>/10 · 후원{' '}
+                  토큰 <b className={tokenSum(me.tokens) >= MAX_TOKENS ? 'warn' : ''}>{tokenSum(me.tokens)}</b>/10 · 쌤{' '}
                   {me.patrons.length}
                 </span>
                 <span className="player-points" key={me.points}>
@@ -224,7 +224,7 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
               <div className="my-body">
                 <Holdings player={me} />
                 <div className="my-reserved">
-                  {me.reserved.length === 0 && <span className="hint">예약한 레시피 없음 (최대 3장)</span>}
+                  {me.reserved.length === 0 && <span className="hint">예약한 카드 없음 (최대 3장)</span>}
                   {me.reserved.map((r) =>
                     r.cardId ? (
                       <RecipeCard
@@ -251,7 +251,7 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
                 {!isMyTurn || ended ? (
                   <span className="hint">{ended ? '게임이 끝났어요.' : `${nameOf(active.id)} 님이 생각 중...`}</span>
                 ) : view.phase !== 'action' ? (
-                  <span className="hint">{view.phase === 'discard' ? '반납할 토큰을 골라 주세요.' : '모실 후원자를 골라 주세요.'}</span>
+                  <span className="hint">{view.phase === 'discard' ? '반납할 토큰을 골라 주세요.' : '쌤을 골라 주세요.'}</span>
                 ) : selection.length > 0 ? (
                   <>
                     <span className="sel-preview">
@@ -280,7 +280,7 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
                   </>
                 ) : (
                   <span className="hint">
-                    정수를 눌러 가져오거나(다른 색 3개 · 같은 색 2개), 레시피를 눌러 익히거나 예약하세요.
+                    토큰을 눌러 가져오거나(다른 색 3개 · 같은 색 2개), 카드를 눌러 등록하거나 예약하세요.
                   </span>
                 )}
               </div>
@@ -350,12 +350,12 @@ export function AlchemyBoard({ snapshot, client }: BoardProps) {
                     <span className="rank">{winner ? '👑' : i + 1}</span>
                     <span className="rank-name">{nameOf(r.playerId)}</span>
                     <span className="rank-score">{r.score}점</span>
-                    <span className="rank-sub">레시피 {r.tiebreak}장</span>
+                    <span className="rank-sub">카드 {r.tiebreak}장</span>
                   </li>
                 );
               })}
             </ol>
-            <p className="hint center">동점이면 레시피를 적게 익힌 사람이 이겨요.</p>
+            <p className="hint center">동점이면 카드를 적게 등록한 사람이 이겨요.</p>
             <div className="modal-actions">
               {snapshot.isHost ? (
                 <button className="btn btn-primary" onClick={() => client.backToLobby?.()}>

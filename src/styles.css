@@ -1,9 +1,9 @@
 /* ───────────── 기본 색과 크기 ───────────── */
 :root {
-  --bg: #17110d;
-  --bg-2: #1f1712;
-  --panel: #2a1f17;
-  --panel-2: #34271d;
+  --bg: #0d1510;
+  --bg-2: #131d16;
+  --panel: #1a281e;
+  --panel-2: #223326;
   --line: rgba(244, 234, 213, 0.12);
   --line-strong: rgba(244, 234, 213, 0.24);
   --text: #f4ead5;
@@ -17,12 +17,12 @@
   --ink: #2b2016;
   --ink-dim: #6d5a42;
 
-  --fire: #e0533a;
-  --water: #2f7fd8;
-  --life: #389a4e;
-  --light: #e9b92f;
-  --shadow: #7c55b2;
-  --catalyst: #d8cdea;
+  --insect: #e0533a;
+  --fish: #2f7fd8;
+  --plant: #389a4e;
+  --bird: #e9b92f;
+  --env: #7c55b2;
+  --joker: #d8cdea;
 
   --radius: 12px;
   --card-w: clamp(58px, calc((100vw - 56px) / 5.2), 100px);
@@ -46,7 +46,7 @@
 html,
 body {
   margin: 0;
-  background: radial-gradient(ellipse at top, #2a1d14 0%, var(--bg) 60%) fixed, var(--bg);
+  background: radial-gradient(ellipse at top, #1b2d20 0%, var(--bg) 60%) fixed, var(--bg);
   color: var(--text);
   font-family: var(--font-body);
   font-size: 15px;
@@ -136,7 +136,7 @@ input:focus {
   white-space: nowrap;
 }
 .btn:hover:not(:disabled) {
-  background: #3f3023;
+  background: #2b4030;
   border-color: var(--gold-dim);
 }
 .btn:active:not(:disabled) {
@@ -192,7 +192,7 @@ input:focus {
 }
 
 .panel {
-  background: linear-gradient(180deg, var(--panel) 0%, #251b14 100%);
+  background: linear-gradient(180deg, var(--panel) 0%, #16221a 100%);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 16px;
@@ -592,28 +592,28 @@ button.token:disabled {
   line-height: 18px;
 }
 
-.ess-fire {
-  --c: var(--fire);
+.ess-insect {
+  --c: var(--insect);
 }
-.ess-water {
-  --c: var(--water);
+.ess-fish {
+  --c: var(--fish);
 }
-.ess-life {
-  --c: var(--life);
+.ess-plant {
+  --c: var(--plant);
 }
-.ess-light {
-  --c: var(--light);
+.ess-bird {
+  --c: var(--bird);
 }
-.ess-shadow {
-  --c: var(--shadow);
+.ess-env {
+  --c: var(--env);
 }
-.ess-catalyst {
+.ess-joker {
   --c: #a99bc4;
 }
-.token.ess-light {
+.token.ess-bird {
   color: #4a3200;
 }
-.token.ess-catalyst {
+.token.ess-joker {
   color: #3b2d55;
   background:
     radial-gradient(circle at 35% 30%, #fff 0%, transparent 45%),
@@ -689,7 +689,7 @@ button.card:hover {
   color: #fff;
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2);
 }
-.card.ess-light .card-gem {
+.card.ess-bird .card-gem {
   color: #4a3200;
 }
 .card-name {
@@ -736,7 +736,7 @@ button.card:hover {
   place-items: center;
   box-shadow: inset 0 -1.5px 0 rgba(0, 0, 0, 0.25);
 }
-.pip.ess-light {
+.pip.ess-bird {
   color: #4a3200;
 }
 .pip.is-covered {
@@ -764,19 +764,19 @@ button.card:hover {
   background:
     radial-gradient(circle at 50% 38%, rgba(230, 185, 92, 0.25), transparent 55%),
     repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0 6px, transparent 6px 12px),
-    #3a2a1e;
+    #213226;
   color: var(--gold);
-  border-color: #6b5236;
+  border-color: #46624c;
   align-items: center;
   justify-content: center;
   gap: 2px;
   text-align: center;
 }
 .card-back.tier-2 {
-  background-color: #2c2f3c;
+  background-color: #1f3340;
 }
 .card-back.tier-3 {
-  background-color: #3c2433;
+  background-color: #40232a;
 }
 .card-back-tier {
   font-family: var(--font-title);
@@ -813,8 +813,8 @@ button.card:hover {
   min-height: 92px;
   padding: 6px 4px;
   border-radius: 10px;
-  background: linear-gradient(160deg, #4a3a5c, #2e2438);
-  border: 1.5px solid #8a73a6;
+  background: linear-gradient(160deg, #24524f, #173533);
+  border: 1.5px solid #5fa39b;
   color: var(--text);
   text-align: center;
   flex: none;
@@ -862,7 +862,7 @@ button.patron {
   place-items: center;
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
 }
-.req.ess-light {
+.req.ess-bird {
   color: #4a3200;
 }
 .patron-sm {
@@ -904,10 +904,10 @@ button.patron {
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
   font-size: 0.95rem;
 }
-.holding.ess-light .holding-bonus {
+.holding.ess-bird .holding-bonus {
   color: #4a3200;
 }
-.holding.ess-catalyst .holding-bonus {
+.holding.ess-joker .holding-bonus {
   background: conic-gradient(from 200deg, #f6d6e8, #d6e6fb, #dbf5df, #fbf0c8, #f6d6e8);
   color: #3b2d55;
   border-radius: 50%;
@@ -921,7 +921,7 @@ button.patron {
   font-weight: 700;
   color: color-mix(in srgb, var(--c) 55%, #fff);
 }
-.holding.ess-catalyst .holding-tokens {
+.holding.ess-joker .holding-tokens {
   color: #e3dbf1;
 }
 .holdings-sm .holding-bonus {
@@ -929,7 +929,7 @@ button.patron {
   font-size: 0.8rem;
   max-width: 26px;
 }
-.holdings-sm .holding.ess-catalyst .holding-bonus {
+.holdings-sm .holding.ess-joker .holding-bonus {
   width: 22px;
 }
 .holdings-sm .holding-tokens {
@@ -977,7 +977,7 @@ button.patron {
   flex-wrap: wrap;
   padding: 8px 14px;
   border-radius: 10px;
-  background: rgba(42, 31, 23, 0.94);
+  background: rgba(26, 40, 30, 0.94);
   border: 1px solid var(--line);
   backdrop-filter: blur(6px);
   font-size: 0.92rem;
@@ -1039,7 +1039,7 @@ button.patron {
   display: grid;
   gap: 12px;
   justify-items: center;
-  background: radial-gradient(ellipse at center, #3b2a1d 0%, #2a1e15 70%);
+  background: radial-gradient(ellipse at center, #22382a 0%, #17261c 70%);
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 12px;
@@ -1231,10 +1231,10 @@ button.patron {
   color: #fff;
   vertical-align: -3px;
 }
-.log-ess.ess-light {
+.log-ess.ess-bird {
   color: #4a3200;
 }
-.log-ess.ess-catalyst {
+.log-ess.ess-joker {
   background: conic-gradient(from 200deg, #f6d6e8, #d6e6fb, #dbf5df, #fbf0c8, #f6d6e8);
   color: #3b2d55;
 }
@@ -1253,7 +1253,7 @@ button.patron {
 
 /* ───────────── 내 공방 ───────────── */
 .my-area {
-  background: linear-gradient(180deg, #33261c, #281e16);
+  background: linear-gradient(180deg, #213226, #18261c);
   border: 1px solid var(--line-strong);
   border-radius: 14px;
   padding: 10px 12px;
@@ -1303,7 +1303,7 @@ button.patron {
   flex-wrap: wrap;
   gap: 8px 10px;
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-  background: rgba(27, 20, 15, 0.96);
+  background: rgba(14, 22, 17, 0.96);
   border-top: 1px solid var(--line-strong);
   backdrop-filter: blur(8px);
   min-height: 64px;
@@ -1324,7 +1324,7 @@ button.patron {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgba(10, 7, 5, 0.66);
+  background: rgba(5, 10, 7, 0.68);
   display: grid;
   place-items: center;
   padding: 16px;
@@ -1334,7 +1334,7 @@ button.patron {
   width: min(460px, 100%);
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
-  background: linear-gradient(180deg, #382a1f, #2a1f17);
+  background: linear-gradient(180deg, #223326, #1a281e);
   border: 1px solid var(--gold-dim);
   border-radius: 16px;
   padding: 16px;

@@ -16,7 +16,7 @@ import {
 
 /**
  * 단순한 욕심쟁이 봇.
- * 살 수 있으면 가장 가치 있는 레시피를 사고, 아니면 목표 레시피에 필요한 정수를 모은다.
+ * 살 수 있으면 가장 가치 있는 카드를 사고, 아니면 목표 카드에 필요한 토큰을 모은다.
  */
 export function botAction(state: AlchemyState, playerId: PlayerId, random: () => number): AlchemyAction {
   const me = state.players.find((p) => p.id === playerId)!;
@@ -30,7 +30,7 @@ export function botAction(state: AlchemyState, playerId: PlayerId, random: () =>
 
   const value = (card: Card) => cardValue(state, me, bonus, card, lateGame) + random() * 0.3;
 
-  // 1) 목표 레시피 정하기: 가치 / 필요한 턴 수
+  // 1) 목표 카드 정하기: 가치 / 필요한 턴 수
   const candidates: Card[] = [];
   for (const t of TIERS) for (const id of state.market[t]) if (id) candidates.push(CARDS[id]);
   for (const r of me.reserved) candidates.push(CARDS[r.cardId]);
@@ -55,13 +55,13 @@ export function botAction(state: AlchemyState, playerId: PlayerId, random: () =>
     if (worthIt) return { type: 'buy', cardId: bestBuy.card.id };
   }
 
-  // 3) 정수 가져오기
+  // 3) 토큰 가져오기
   const room = MAX_TOKENS - tokenTotal(me.tokens);
   // 토큰이 꽉 찼으면 가져와도 반납해야 하므로, 살 수 있는 게 있으면 그냥 산다 (가져왔다 반납하는 반복 방지)
   if (room <= 0 && bestBuy) return { type: 'buy', cardId: bestBuy.card.id };
   const take = chooseTokens(state, me, bonus, ranked.map((r) => r.card), Math.max(room, 0));
   if (take.length > 0 && validate(state, playerId, { type: 'take', colors: take }) === null) {
-    // 토큰이 꽉 차 가는데 목표가 비싼 카드면 예약해서 촉매를 받는 편이 낫다
+    // 토큰이 꽉 차 가는데 목표가 비싼 카드면 예약해서 생교를 받는 편이 낫다
     const top = ranked[0]?.card;
     const reserveInstead =
       top &&
@@ -80,7 +80,7 @@ export function botAction(state: AlchemyState, playerId: PlayerId, random: () =>
     if (deckTier) return { type: 'reserveDeck', tier: deckTier };
   }
 
-  // 5) 아무 정수라도
+  // 5) 아무 토큰라도
   if (bestBuy) return { type: 'buy', cardId: bestBuy.card.id };
   const any = ESSENCES.filter((e) => state.bank[e] > 0).slice(0, 3);
   if (any.length > 0) return { type: 'take', colors: any };
@@ -90,7 +90,7 @@ export function botAction(state: AlchemyState, playerId: PlayerId, random: () =>
 function cardValue(state: AlchemyState, me: PlayerState, bonus: EssenceCounts, card: Card, lateGame: boolean): number {
   let v = card.points * (lateGame ? 2 : 1.2);
   if (!lateGame) {
-    // 이 정수 할인이 진열된 다른 레시피와 후원자에게 얼마나 도움이 되는지
+    // 이 토큰 할인이 진열된 다른 카드와 쌤에게 얼마나 도움이 되는지
     let help = 0;
     for (const t of TIERS)
       for (const id of state.market[t]) {
@@ -117,7 +117,7 @@ function missingFor(me: PlayerState, bonus: EssenceCounts, card: Card): EssenceC
 
 function turnsNeeded(me: PlayerState, bonus: EssenceCounts, card: Card): number {
   const miss = missingFor(me, bonus, card);
-  const total = ESSENCES.reduce((s, e) => s + miss[e], 0) - me.tokens.catalyst;
+  const total = ESSENCES.reduce((s, e) => s + miss[e], 0) - me.tokens.joker;
   if (total <= 0) return 0;
   const maxOne = Math.max(...ESSENCES.map((e) => miss[e]));
   return Math.max(Math.ceil(total / 3), Math.ceil(maxOne / 2));
@@ -140,7 +140,7 @@ function chooseTokens(
       return [needed[0], needed[0]];
     }
   }
-  const weight: Record<Essence, number> = { fire: 0, water: 0, life: 0, light: 0, shadow: 0 };
+  const weight: Record<Essence, number> = { insect: 0, fish: 0, plant: 0, bird: 0, env: 0 };
   targets.slice(0, 3).forEach((card, i) => {
     const miss = missingFor(me, bonus, card);
     for (const e of ESSENCES) if (miss[e] > 0) weight[e] += (3 - i) * Math.min(miss[e], 3);
@@ -159,7 +159,7 @@ function chooseDiscard(state: AlchemyState, me: PlayerState): Partial<TokenCount
   const left = { ...me.tokens };
   const out: Partial<TokenCounts> = {};
   // 진열된 카드 기준으로 덜 필요한 색부터 반납
-  const demand: Record<Essence, number> = { fire: 0, water: 0, life: 0, light: 0, shadow: 0 };
+  const demand: Record<Essence, number> = { insect: 0, fish: 0, plant: 0, bird: 0, env: 0 };
   for (const t of TIERS)
     for (const id of state.market[t]) if (id) for (const e of ESSENCES) demand[e] += Math.max(0, CARDS[id].cost[e] - bonus[e]);
   for (const r of me.reserved) for (const e of ESSENCES) demand[e] += 3 * Math.max(0, CARDS[r.cardId].cost[e] - bonus[e]);

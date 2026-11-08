@@ -26,8 +26,8 @@ export interface GameEntry {
 export const GAMES: GameEntry[] = [
   {
     id: 'alchemy',
-    title: '생교 연금공방',
-    tagline: '정수를 모아 레시피를 익히고, 익힌 레시피로 더 큰 비약을 만드세요. 후원자를 먼저 모시는 연금술사가 이깁니다.',
+    title: '생플렌더',
+    tagline: '곤충·어류·식물·조류·환경 토큰을 모아 생물 카드를 도감에 등록하세요. 흔한 종부터 멸종위기종까지, 쌤들의 눈에 들면 점수가 쑥쑥.',
     players: '2~4명',
     minutes: '30~45분',
     ready: true,

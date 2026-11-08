@@ -44,7 +44,7 @@ export function CardModal({
   onClose: () => void;
 }) {
   const reserveFull = !me || me.reserved.length >= MAX_RESERVED;
-  const catalystLeft = view.bank.catalyst > 0;
+  const jokerLeft = view.bank.joker > 0;
 
   if (target.kind === 'deck') {
     const count = view.deckCounts[target.tier];
@@ -53,8 +53,8 @@ export function CardModal({
         <div className="card-detail">
           <CardBack tier={target.tier} count={count} />
           <div className="card-detail-text">
-            <p>덱 맨 위 레시피를 다른 사람 몰래 예약해요. 무엇이 나올지는 예약한 뒤에 알 수 있어요.</p>
-            <p className="hint">{catalystLeft ? '예약하면 촉매를 1개 받아요.' : '촉매가 다 떨어져서 예약만 해요.'}</p>
+            <p>덱 맨 위 카드를 다른 사람 몰래 예약해요. 무엇이 나올지는 예약한 뒤에 알 수 있어요.</p>
+            <p className="hint">{jokerLeft ? '예약하면 생교를 1개 받아요.' : '생교가 다 떨어져서 예약만 해요.'}</p>
           </div>
         </div>
         <div className="modal-actions">
@@ -79,7 +79,7 @@ export function CardModal({
       canAct={canAct}
       source={target.source}
       reserveFull={reserveFull}
-      catalystLeft={catalystLeft}
+      jokerLeft={jokerLeft}
       onBuy={onBuy}
       onReserve={onReserve}
       onClose={onClose}
@@ -87,18 +87,18 @@ export function CardModal({
   );
 }
 
-/** 낼 토큰 계산. extra = 색 토큰 대신 촉매로 낼 개수 */
+/** 낼 토큰 계산. extra = 색 토큰 대신 생교로 낼 개수 */
 function planPayment(card: Card, me: PlayerView, extra: Partial<Record<Essence, number>>) {
-  let catalyst = 0;
+  let joker = 0;
   const lines = ESSENCES.filter((e) => card.cost[e] > 0).map((e) => {
     const need = Math.max(0, card.cost[e] - me.bonuses[e]);
     const tokens = Math.min(need, me.tokens[e]) - (extra[e] ?? 0);
-    catalyst += need - tokens;
-    return { e, cost: card.cost[e], bonus: Math.min(me.bonuses[e], card.cost[e]), tokens, catalyst: need - tokens };
+    joker += need - tokens;
+    return { e, cost: card.cost[e], bonus: Math.min(me.bonuses[e], card.cost[e]), tokens, joker: need - tokens };
   });
-  const payment: Partial<TokenCounts> = { catalyst };
+  const payment: Partial<TokenCounts> = { joker };
   for (const l of lines) payment[l.e] = l.tokens;
-  return { lines, catalyst, affordable: catalyst <= me.tokens.catalyst, payment };
+  return { lines, joker, affordable: joker <= me.tokens.joker, payment };
 }
 
 function BuyPanel({
@@ -107,7 +107,7 @@ function BuyPanel({
   canAct,
   source,
   reserveFull,
-  catalystLeft,
+  jokerLeft,
   onBuy,
   onReserve,
   onClose,
@@ -117,7 +117,7 @@ function BuyPanel({
   canAct: boolean;
   source: 'market' | 'reserve';
   reserveFull: boolean;
-  catalystLeft: boolean;
+  jokerLeft: boolean;
   onBuy: (id: string, payment?: Partial<TokenCounts>) => void;
   onReserve: (id: string) => void;
   onClose: () => void;
@@ -131,7 +131,7 @@ function BuyPanel({
         <RecipeCard card={card} size="lg" bonus={me?.bonuses} affordable={!!plan?.affordable} />
         <div className="card-detail-text">
           <p>
-            익히면 <b className={`text-ess ess-${card.essence}`}>{ESSENCE_INFO[card.essence].name}</b> 할인 1개
+            등록하면 <b className={`text-ess ess-${card.essence}`}>{ESSENCE_INFO[card.essence].name}</b> 할인 1개
             {card.points > 0 && (
               <>
                 {' '}
@@ -147,13 +147,13 @@ function BuyPanel({
                   <th>필요</th>
                   <th>할인</th>
                   <th>토큰</th>
-                  <th>촉매</th>
+                  <th>생교</th>
                 </tr>
               </thead>
               <tbody>
                 {plan.lines.map((l) => {
                   const x = extra[l.e] ?? 0;
-                  const canMore = me.tokens.catalyst > 0 && l.tokens > 0 && plan.catalyst < me.tokens.catalyst;
+                  const canMore = me.tokens.joker > 0 && l.tokens > 0 && plan.joker < me.tokens.joker;
                   return (
                     <tr key={l.e}>
                       <td>
@@ -164,16 +164,16 @@ function BuyPanel({
                       <td>{l.cost}</td>
                       <td>{l.bonus || '·'}</td>
                       <td>{l.tokens || '·'}</td>
-                      <td className={l.catalyst > 0 && !plan.affordable ? 'is-short' : ''}>
+                      <td className={l.joker > 0 && !plan.affordable ? 'is-short' : ''}>
                         <span className="cat-cell">
                           {x > 0 && (
-                            <button className="step" aria-label="촉매 덜 쓰기" onClick={() => setExtra({ ...extra, [l.e]: x - 1 })}>
+                            <button className="step" aria-label="생교 덜 쓰기" onClick={() => setExtra({ ...extra, [l.e]: x - 1 })}>
                               −
                             </button>
                           )}
-                          {l.catalyst || '·'}
+                          {l.joker || '·'}
                           {canMore && (
-                            <button className="step" aria-label="색 토큰 대신 촉매 쓰기" onClick={() => setExtra({ ...extra, [l.e]: x + 1 })}>
+                            <button className="step" aria-label="색 토큰 대신 생교 쓰기" onClick={() => setExtra({ ...extra, [l.e]: x + 1 })}>
                               +
                             </button>
                           )}
@@ -187,11 +187,11 @@ function BuyPanel({
                 <tr>
                   <td colSpan={5}>
                     {plan.affordable
-                      ? plan.catalyst === 0
-                        ? '촉매 없이 살 수 있어요.'
-                        : `촉매 ${plan.catalyst}개를 써요 (가진 촉매 ${me.tokens.catalyst}개).`
-                      : `촉매를 써도 ${plan.catalyst - me.tokens.catalyst}개가 모자라요.`}
-                    {me.tokens.catalyst > 0 && plan.affordable && <span className="hint"> 촉매 칸의 +로 색 토큰 대신 촉매를 낼 수 있어요.</span>}
+                      ? plan.joker === 0
+                        ? '생교 없이 등록할 수 있어요.'
+                        : `생교 ${plan.joker}개를 써요 (가진 생교 ${me.tokens.joker}개).`
+                      : `생교를 써도 ${plan.joker - me.tokens.joker}개가 모자라요.`}
+                    {me.tokens.joker > 0 && plan.affordable && <span className="hint"> 생교 칸의 +로 색 토큰 대신 생교를 낼 수 있어요.</span>}
                   </td>
                 </tr>
               </tfoot>
@@ -205,11 +205,11 @@ function BuyPanel({
           disabled={!canAct || !plan?.affordable}
           onClick={() => onBuy(card.id, usingExtra ? plan!.payment : undefined)}
         >
-          {plan?.affordable ? '익히기' : '재료가 부족해요'}
+          {plan?.affordable ? '등록하기' : '토큰이 부족해요'}
         </button>
         {source === 'market' && (
           <button className="btn" disabled={!canAct || reserveFull} onClick={() => onReserve(card.id)}>
-            {reserveFull ? '예약 칸이 가득 참' : `예약하기${catalystLeft ? ' (+촉매 1)' : ''}`}
+            {reserveFull ? '예약 칸이 가득 참' : `예약하기${jokerLeft ? ' (+생교 1)' : ''}`}
           </button>
         )}
       </div>
@@ -259,8 +259,8 @@ export function DiscardModal({ me, onConfirm }: { me: PlayerView; onConfirm: (to
 export function PatronModal({ choices, onChoose }: { choices: string[]; onChoose: (id: string) => void }) {
   const [sel, setSel] = useState<string | null>(null);
   return (
-    <Modal title="후원자가 여럿 찾아왔어요!">
-      <p className="hint">한 턴에 한 명만 모실 수 있어요. 고르지 않은 후원자는 나중에 다시 올 수도 있어요.</p>
+    <Modal title="쌤이 여럿 찾아왔어요!">
+      <p className="hint">한 턴에 한 명만 고를 수 있어요. 고르지 않은 쌤은 나중에 다시 올 수도 있어요.</p>
       <div className="patron-choices">
         {choices.map((id) => (
           <PatronTile key={id} id={id} onClick={() => setSel(id)} selected={sel === id} />

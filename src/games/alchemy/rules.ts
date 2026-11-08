@@ -3,7 +3,7 @@ import { createRng, shuffle } from '../../engine/rng';
 import {
   CARDS,
   CARD_LIST,
-  CATALYST_COUNT,
+  JOKER_COUNT,
   MARKET_SIZE,
   MAX_RESERVED,
   MAX_TOKENS,
@@ -38,7 +38,7 @@ export const DEFAULT_OPTIONS: AlchemyOptions = { targetScore: TARGET_SCORE };
 // ───────────────────────── 계산 도우미 ─────────────────────────
 
 export function emptyTokens(): TokenCounts {
-  return { ...emptyEssences(), catalyst: 0 };
+  return { ...emptyEssences(), joker: 0 };
 }
 
 export function bonusesOf(player: Pick<PlayerState, 'cards'>): EssenceCounts {
@@ -58,7 +58,7 @@ export function tokenTotal(tokens: TokenCounts): number {
   return TOKEN_COLORS.reduce((sum, c) => sum + tokens[c], 0);
 }
 
-/** 레시피를 익히는 데 실제로 낼 토큰. 낼 수 없으면 null. 색 토큰을 먼저 쓰고 모자라는 만큼 촉매를 쓴다. */
+/** 카드를 등록하는 데 실제로 낼 토큰. 낼 수 없으면 null. 색 토큰을 먼저 쓰고 모자라는 만큼 생교를 쓴다. */
 export function paymentFor(player: Pick<PlayerState, 'cards' | 'tokens'>, card: Card): TokenCounts | null {
   const bonus = bonusesOf(player);
   const pay = emptyTokens();
@@ -69,8 +69,8 @@ export function paymentFor(player: Pick<PlayerState, 'cards' | 'tokens'>, card: 
     pay[e] = useColor;
     shortage += need - useColor;
   }
-  if (shortage > player.tokens.catalyst) return null;
-  pay.catalyst = shortage;
+  if (shortage > player.tokens.joker) return null;
+  pay.joker = shortage;
   return pay;
 }
 
@@ -83,19 +83,19 @@ export function checkPayment(
   if (!payment || typeof payment !== 'object') return '잘못된 지불입니다.';
   const bonus = bonusesOf(player);
   const pay = emptyTokens();
-  let catalystNeeded = 0;
+  let jokerNeeded = 0;
   for (const e of ESSENCES) {
     const need = Math.max(0, card.cost[e] - bonus[e]);
     const p = payment[e] ?? 0;
     if (!isInt(p) || p < 0 || p > need) return '잘못된 지불입니다.';
-    if (p > player.tokens[e]) return '재료가 부족합니다.';
+    if (p > player.tokens[e]) return '토큰이 부족합니다.';
     pay[e] = p;
-    catalystNeeded += need - p;
+    jokerNeeded += need - p;
   }
-  const cat = payment.catalyst ?? 0;
-  if (cat !== catalystNeeded) return '촉매 개수가 맞지 않습니다.';
-  if (cat > player.tokens.catalyst) return '재료가 부족합니다.';
-  pay.catalyst = cat;
+  const cat = payment.joker ?? 0;
+  if (cat !== jokerNeeded) return '생교 개수가 맞지 않습니다.';
+  if (cat > player.tokens.joker) return '토큰이 부족합니다.';
+  pay.joker = cat;
   return pay;
 }
 
@@ -143,7 +143,7 @@ export function setup(playerIds: PlayerId[], _options: AlchemyOptions, seed: num
   if (playerIds.length < 2 || playerIds.length > 4) throw new Error('2~4명만 플레이할 수 있습니다.');
   const random = createRng(seed);
   const n = essenceTokenCount(playerIds.length);
-  const bank: TokenCounts = { fire: n, water: n, life: n, light: n, shadow: n, catalyst: CATALYST_COUNT };
+  const bank: TokenCounts = { insect: n, fish: n, plant: n, bird: n, env: n, joker: JOKER_COUNT };
   const decks = {} as Record<Tier, string[]>;
   const market = {} as Record<Tier, (string | null)[]>;
   for (const tier of TIERS) {
@@ -190,7 +190,7 @@ export function validate(state: AlchemyState, playerId: PlayerId, action: Alchem
   if (player.id !== playerId) return '내 차례가 아닙니다.';
 
   if (state.phase === 'discard' && action.type !== 'discard') return '먼저 토큰을 반납해야 합니다.';
-  if (state.phase === 'patron' && action.type !== 'choosePatron') return '먼저 후원자를 골라야 합니다.';
+  if (state.phase === 'patron' && action.type !== 'choosePatron') return '먼저 쌤을 골라야 합니다.';
   if (state.phase === 'action' && (action.type === 'discard' || action.type === 'choosePatron')) {
     return '지금은 할 수 없는 행동입니다.';
   }
@@ -199,26 +199,26 @@ export function validate(state: AlchemyState, playerId: PlayerId, action: Alchem
     case 'take': {
       const colors = action.colors;
       if (!Array.isArray(colors) || colors.length < 1 || colors.length > 3 || !colors.every(isEssence)) {
-        return '정수를 1~3개 골라 주세요.';
+        return '토큰을 1~3개 골라 주세요.';
       }
       const distinct = new Set(colors).size;
       const available = ESSENCES.filter((e) => state.bank[e] > 0).length;
       if (colors.length === 2 && distinct === 1) {
         if (state.bank[colors[0]] < TAKE_TWO_MIN) {
-          return `같은 정수 2개는 은행에 ${TAKE_TWO_MIN}개 이상 남아 있을 때만 가져올 수 있습니다.`;
+          return `같은 토큰 2개는 은행에 ${TAKE_TWO_MIN}개 이상 남아 있을 때만 가져올 수 있습니다.`;
         }
         return null;
       }
-      if (distinct !== colors.length) return '서로 다른 정수를 고르거나, 같은 정수 2개만 골라 주세요.';
-      for (const c of colors) if (state.bank[c] < 1) return '은행에 남아 있지 않은 정수입니다.';
-      // 서로 다른 정수는 3개. 은행에 남은 색이 3가지 미만일 때만 남은 색을 모두 가져간다.
+      if (distinct !== colors.length) return '서로 다른 토큰을 고르거나, 같은 토큰 2개만 골라 주세요.';
+      for (const c of colors) if (state.bank[c] < 1) return '은행에 남아 있지 않은 토큰입니다.';
+      // 서로 다른 토큰은 3개. 은행에 남은 색이 3가지 미만일 때만 남은 색을 모두 가져간다.
       const required = Math.min(3, available);
-      if (colors.length !== required) return `서로 다른 정수 ${required}개를 골라 주세요.`;
+      if (colors.length !== required) return `서로 다른 토큰 ${required}개를 골라 주세요.`;
       return null;
     }
     case 'reserve': {
       if (player.reserved.length >= MAX_RESERVED) return `예약은 최대 ${MAX_RESERVED}장까지입니다.`;
-      if (!findInMarket(state, action.cardId)) return '진열대에 없는 레시피입니다.';
+      if (!findInMarket(state, action.cardId)) return '진열대에 없는 카드입니다.';
       return null;
     }
     case 'reserveDeck': {
@@ -230,12 +230,12 @@ export function validate(state: AlchemyState, playerId: PlayerId, action: Alchem
     case 'buy': {
       const inMarket = findInMarket(state, action.cardId);
       const inReserve = player.reserved.some((r) => r.cardId === action.cardId);
-      if (!inMarket && !inReserve) return '익힐 수 없는 레시피입니다.';
+      if (!inMarket && !inReserve) return '등록할 수 없는 카드입니다.';
       if (action.payment !== undefined) {
         const checked = checkPayment(player, CARDS[action.cardId], action.payment);
         return typeof checked === 'string' ? checked : null;
       }
-      if (!paymentFor(player, CARDS[action.cardId])) return '재료가 부족합니다.';
+      if (!paymentFor(player, CARDS[action.cardId])) return '토큰이 부족합니다.';
       return null;
     }
     case 'discard': {
@@ -253,7 +253,7 @@ export function validate(state: AlchemyState, playerId: PlayerId, action: Alchem
       return null;
     }
     case 'choosePatron': {
-      if (!state.patronChoices.includes(action.patronId)) return '고를 수 없는 후원자입니다.';
+      if (!state.patronChoices.includes(action.patronId)) return '고를 수 없는 쌤입니다.';
       return null;
     }
     case 'pass': {
@@ -271,10 +271,10 @@ function refill(state: AlchemyState, tier: Tier, slot: number) {
   state.market[tier][slot] = state.decks[tier].pop() ?? null;
 }
 
-function giveCatalyst(state: AlchemyState, player: PlayerState): boolean {
-  if (state.bank.catalyst <= 0) return false;
-  state.bank.catalyst--;
-  player.tokens.catalyst++;
+function giveJoker(state: AlchemyState, player: PlayerState): boolean {
+  if (state.bank.joker <= 0) return false;
+  state.bank.joker--;
+  player.tokens.joker++;
   return true;
 }
 
@@ -298,8 +298,8 @@ export function apply(prev: AlchemyState, playerId: PlayerId, action: AlchemyAct
       const pos = findInMarket(state, action.cardId)!;
       refill(state, pos.tier, pos.slot);
       player.reserved.push({ cardId: action.cardId, hidden: false });
-      const got = giveCatalyst(state, player);
-      state.log.push({ kind: 'reserve', player: player.id, cardId: action.cardId, tier: pos.tier, catalyst: got });
+      const got = giveJoker(state, player);
+      state.log.push({ kind: 'reserve', player: player.id, cardId: action.cardId, tier: pos.tier, joker: got });
       state.consecutivePasses = 0;
       afterMainAction(state);
       break;
@@ -307,8 +307,8 @@ export function apply(prev: AlchemyState, playerId: PlayerId, action: AlchemyAct
     case 'reserveDeck': {
       const cardId = state.decks[action.tier].pop()!;
       player.reserved.push({ cardId, hidden: true });
-      const got = giveCatalyst(state, player);
-      state.log.push({ kind: 'reserve', player: player.id, cardId: null, tier: action.tier, catalyst: got });
+      const got = giveJoker(state, player);
+      state.log.push({ kind: 'reserve', player: player.id, cardId: null, tier: action.tier, joker: got });
       state.consecutivePasses = 0;
       afterMainAction(state);
       break;

@@ -69,7 +69,7 @@ export function Home() {
           id="nickname"
           value={name}
           maxLength={12}
-          placeholder="예: 연금술사 민지"
+          placeholder="예: 생교 민지"
           onChange={(e) => {
             setName(e.target.value);
             setError('');

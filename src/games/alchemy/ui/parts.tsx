@@ -77,7 +77,7 @@ export function RecipeCard({
       className={`card card-${size} tier-${card.tier} ess-${card.essence} ${affordable ? 'can-buy' : ''}`}
       onClick={onClick}
       type={onClick ? 'button' : undefined}
-      aria-label={`${card.name}, ${card.points}점, ${ESSENCE_INFO[card.essence].name} 레시피`}
+      aria-label={`${card.name}, ${card.points}점, ${ESSENCE_INFO[card.essence].name} 카드`}
     >
       <span className="card-top">
         <span className="card-points">{card.points > 0 ? card.points : ''}</span>
@@ -118,13 +118,13 @@ export function PatronTile({ id, size = 'md', onClick, selected }: { id: string;
       className={`patron patron-${size} ${selected ? 'is-selected' : ''}`}
       onClick={onClick}
       type={onClick ? 'button' : undefined}
-      aria-label={`후원자 ${p.name}, ${p.points}점`}
+      aria-label={`${p.name}, ${p.points}점`}
     >
       <span className="patron-points">{p.points}</span>
       <span className="patron-name">{p.name}</span>
       <span className="patron-req">
         {ESSENCES.filter((e) => p.require[e] > 0).map((e) => (
-          <span key={e} className={`req ess-${e}`} title={`${ESSENCE_INFO[e].name} 레시피 ${p.require[e]}장`}>
+          <span key={e} className={`req ess-${e}`} title={`${ESSENCE_INFO[e].name} 카드 ${p.require[e]}장`}>
             {p.require[e]}
           </span>
         ))}
@@ -133,12 +133,12 @@ export function PatronTile({ id, size = 'md', onClick, selected }: { id: string;
   );
 }
 
-/** 정수별로 "레시피(할인) 수 + 토큰 수"를 보여주는 줄 */
+/** 토큰별로 "카드(할인) 수 + 토큰 수"를 보여주는 줄 */
 export function Holdings({ player, size = 'md' }: { player: PlayerView; size?: 'sm' | 'md' }) {
   return (
     <div className={`holdings holdings-${size}`}>
       {ESSENCES.map((e) => (
-        <div key={e} className={`holding ess-${e}`} title={`${ESSENCE_INFO[e].name}: 레시피 ${player.bonuses[e]}장, 토큰 ${player.tokens[e]}개`}>
+        <div key={e} className={`holding ess-${e}`} title={`${ESSENCE_INFO[e].name}: 카드 ${player.bonuses[e]}장, 토큰 ${player.tokens[e]}개`}>
           <span className="holding-bonus">{player.bonuses[e]}</span>
           <span className="holding-tokens">
             <EssenceIcon color={e} size={size === 'sm' ? 11 : 13} />
@@ -146,18 +146,18 @@ export function Holdings({ player, size = 'md' }: { player: PlayerView; size?: '
           </span>
         </div>
       ))}
-      <div className="holding ess-catalyst" title={`촉매 ${player.tokens.catalyst}개`}>
+      <div className="holding ess-joker" title={`생교 ${player.tokens.joker}개`}>
         <span className="holding-bonus">
-          <EssenceIcon color="catalyst" size={size === 'sm' ? 12 : 15} />
+          <EssenceIcon color="joker" size={size === 'sm' ? 12 : 15} />
         </span>
-        <span className="holding-tokens">{player.tokens.catalyst}</span>
+        <span className="holding-tokens">{player.tokens.joker}</span>
       </div>
     </div>
   );
 }
 
 export function tokenSum(t: TokenCounts): number {
-  return ESSENCES.reduce((s, e) => s + t[e], 0) + t.catalyst;
+  return ESSENCES.reduce((s, e) => s + t[e], 0) + t.joker;
 }
 
 export function PlayerPanel({
@@ -190,10 +190,10 @@ export function PlayerPanel({
       <Holdings player={player} size="sm" />
       <div className="player-foot">
         <span title="보유 토큰 (최대 10)">토큰 {tokenSum(player.tokens)}/10</span>
-        <span title="예약한 레시피">
+        <span title="예약한 카드">
           예약 {player.reserved.length}/3
         </span>
-        {player.patrons.length > 0 && <span title="후원자">후원 {player.patrons.length}</span>}
+        {player.patrons.length > 0 && <span title="나를 눈여겨본 쌤">쌤 {player.patrons.length}</span>}
       </div>
     </div>
   );

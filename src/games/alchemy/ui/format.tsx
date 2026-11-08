@@ -8,7 +8,7 @@ export function describeLog(entry: LogEntry, nameOf: (id: string) => string): Re
     case 'take':
       return (
         <>
-          <b>{nameOf(entry.player)}</b> 정수 가져옴{' '}
+          <b>{nameOf(entry.player)}</b> 토큰 가져옴{' '}
           <span className="log-icons">
             {entry.tokens.map((c, i) => (
               <span key={i} className={`log-ess ess-${c}`}>
@@ -22,7 +22,7 @@ export function describeLog(entry: LogEntry, nameOf: (id: string) => string): Re
       const card = CARDS[entry.cardId];
       return (
         <>
-          <b>{nameOf(entry.player)}</b> <span className={`log-card ess-${card.essence}`}>「{card.name}」</span> 익힘
+          <b>{nameOf(entry.player)}</b> <span className={`log-card ess-${card.essence}`}>「{card.name}」</span> 등록
           {card.points > 0 && <span className="log-pts"> +{card.points}점</span>}
           {entry.fromReserve && ' (예약해 둔 것)'}
         </>
@@ -40,11 +40,11 @@ export function describeLog(entry: LogEntry, nameOf: (id: string) => string): Re
           ) : (
             <>{TIER_INFO[entry.tier].name} 덱에서 몰래 예약</>
           )}
-          {entry.catalyst && (
+          {entry.joker && (
             <>
               {' '}
-              <span className="log-ess ess-catalyst">
-                <EssenceIcon color="catalyst" size={13} />
+              <span className="log-ess ess-joker">
+                <EssenceIcon color="joker" size={13} />
               </span>
               +1
             </>
@@ -70,7 +70,7 @@ export function describeLog(entry: LogEntry, nameOf: (id: string) => string): Re
     case 'patron':
       return (
         <>
-          🎉 <b>{PATRONS[entry.patronId].name}</b>이(가) <b>{nameOf(entry.player)}</b>님을 후원! <span className="log-pts">+3점</span>
+          🎉 <b>{PATRONS[entry.patronId].name}</b>이 <b>{nameOf(entry.player)}</b> 님을 눈여겨봐요! <span className="log-pts">+3점</span>
         </>
       );
     case 'pass':

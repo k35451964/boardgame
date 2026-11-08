@@ -47,7 +47,7 @@ it('balance', () => {
       `[${n}인] 평균 ${(rounds / GAMES).toFixed(1)}라운드 (최소 ${roundsMin}, 최대 ${roundsMax}) | 막힘 ${pct(stalls)} | 승자 평균 ${(winPts / GAMES).toFixed(1)}점\n` +
         `   자리별 승률: ${seatWins.map(pct).join(' / ')}\n` +
         `   판당 구매 1/2/3단계: ${[1, 2, 3].map((t) => (tierBuys[t] / GAMES).toFixed(1)).join(' / ')} | 승자 구매: ${[1, 2, 3].map((t) => (winnerTier[t] / GAMES).toFixed(1)).join(' / ')}\n` +
-        `   판당 후원자 ${(patrons / GAMES).toFixed(2)} | 예약 ${(reserves / GAMES).toFixed(1)} (덱 ${(deckReserves / GAMES).toFixed(1)}) | 안 끝난 판 ${stuckGames}`,
+        `   판당 쌤 ${(patrons / GAMES).toFixed(2)} | 예약 ${(reserves / GAMES).toFixed(1)} (덱 ${(deckReserves / GAMES).toFixed(1)}) | 안 끝난 판 ${stuckGames}`,
     );
   }
 });
