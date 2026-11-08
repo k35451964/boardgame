@@ -122,8 +122,9 @@ export const CARD_LIST: readonly Card[] = buildCards();
 export const CARDS: Readonly<Record<string, Card>> = Object.fromEntries(CARD_LIST.map((c) => [c.id, c]));
 
 /**
- * 쌤 6명. 두 분야 4장씩(3명) 또는 세 분야 3장씩(3명).
- * 다섯 분야가 조건에 똑같이 3번씩 들어가도록 짰다.
+ * 쌤 5명 × 타일 2장 = 10장. 화면에는 이름만 보이고 A/B 구분은 보이지 않는다.
+ * 쌤마다 "두 분야 4장씩" 타일 1장과 "세 분야 3장씩" 타일 1장을 가진다.
+ * 한 판에는 같은 쌤이 두 번 나오지 않는다 (rules.ts의 setup).
  */
 function patron(id: string, name: string, require: Partial<EssenceCounts>): Patron {
   return { id, name, points: 3, require: { ...emptyEssences(), ...require } };
@@ -131,12 +132,16 @@ function patron(id: string, name: string, require: Partial<EssenceCounts>): Patr
 
 function buildPatrons(): Patron[] {
   return [
-    patron('p-chae', '채쌤', { insect: 4, plant: 4 }),
-    patron('p-yang', '양쌤', { fish: 4, bird: 4 }),
-    patron('p-kim', '김쌤', { plant: 4, env: 4 }),
-    patron('p-jang', '장쌤', { insect: 3, fish: 3, bird: 3 }),
-    patron('p-hwang', '황쌤', { insect: 3, bird: 3, env: 3 }),
-    patron('p-office', '과사쌤', { fish: 3, plant: 3, env: 3 }),
+    patron('p-chae-a', '채쌤', { insect: 4, plant: 4 }),
+    patron('p-chae-b', '채쌤', { plant: 3, bird: 3, insect: 3 }),
+    patron('p-yang-a', '양쌤', { fish: 4, bird: 4 }),
+    patron('p-yang-b', '양쌤', { bird: 3, env: 3, fish: 3 }),
+    patron('p-kim-a', '김쌤', { plant: 4, env: 4 }),
+    patron('p-kim-b', '김쌤', { env: 3, insect: 3, plant: 3 }),
+    patron('p-jang-a', '장쌤', { bird: 4, insect: 4 }),
+    patron('p-jang-b', '장쌤', { insect: 3, fish: 3, bird: 3 }),
+    patron('p-hwang-a', '황쌤', { env: 4, fish: 4 }),
+    patron('p-hwang-b', '황쌤', { fish: 3, plant: 3, env: 3 }),
   ];
 }
 

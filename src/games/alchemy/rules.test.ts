@@ -29,9 +29,20 @@ describe('카드 데이터', () => {
       expect(mine.reduce((s, c) => s + c.points, 0)).toBe(CARD_LIST.reduce((s, c) => s + c.points, 0) / 5);
     }
   });
-  it('쌤은 6명이고 다섯 분야가 조건에 고르게 들어간다', () => {
-    expect(PATRON_LIST.map((p) => p.name)).toEqual(['채쌤', '양쌤', '김쌤', '장쌤', '황쌤', '과사쌤']);
-    for (const e of ESSENCES) expect(PATRON_LIST.filter((p) => p.require[e] > 0).length).toBe(3);
+  it('쌤 타일은 5명 × 2장 = 10장이고, 다섯 분야가 고르게 들어간다', () => {
+    expect(PATRON_LIST.length).toBe(10);
+    expect([...new Set(PATRON_LIST.map((p) => p.name))]).toEqual(['채쌤', '양쌤', '김쌤', '장쌤', '황쌤']);
+    for (const e of ESSENCES) expect(PATRON_LIST.filter((p) => p.require[e] > 0).length).toBe(5);
+  });
+  it('한 판에 같은 쌤은 두 번 나오지 않는다', () => {
+    for (const n of [2, 3, 4]) {
+      for (let seed = 1; seed <= 300; seed++) {
+        const s = setup(['a', 'b', 'c', 'd'].slice(0, n), { targetScore: 15 }, seed);
+        const names = s.patrons.map((id) => PATRON_LIST.find((p) => p.id === id)!.name);
+        expect(names.length).toBe(n + 1);
+        expect(new Set(names).size).toBe(n + 1);
+      }
+    }
   });
 });
 

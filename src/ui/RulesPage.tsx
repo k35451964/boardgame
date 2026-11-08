@@ -1,4 +1,4 @@
-import { CARD_LIST, MAX_RESERVED, MAX_TOKENS, PATRON_LIST, TAKE_TWO_MIN } from '../games/alchemy/data';
+import { CARD_LIST, MAX_RESERVED, MAX_TOKENS, TAKE_TWO_MIN } from '../games/alchemy/data';
 import { EssenceIcon } from '../games/alchemy/ui/icons';
 import { ESSENCES } from '../games/alchemy/types';
 import { ESSENCE_INFO } from '../games/alchemy/data';
@@ -70,7 +70,8 @@ export function RulesPage() {
         <h2>쌤</h2>
         <p>
           쌤 타일에 적힌 만큼 카드(할인)를 모으면 차례 끝에 쌤이 나를 눈여겨봐요 (+3점). 한 턴에 한 명만 오고, 여럿이 동시에 오면
-          하나를 골라요. 쌤은 모두 {PATRON_LIST.length}명(채쌤 · 양쌤 · 김쌤 · 장쌤 · 황쌤 · 과사쌤)이고, 판마다 인원수+1명이 나와요.
+          하나를 골라요. 쌤은 채쌤 · 양쌤 · 김쌤 · 장쌤 · 황쌤 5명이고, 판마다 인원수+1명이 나와요. 같은 쌤이 한 판에 두 번 나오지는
+          않고, 같은 쌤이라도 판마다 원하는 조건이 다를 수 있어요.
         </p>
       </section>
 

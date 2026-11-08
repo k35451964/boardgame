@@ -155,10 +155,15 @@ export function setup(playerIds: PlayerId[], _options: AlchemyOptions, seed: num
     for (let i = 0; i < MARKET_SIZE; i++) market[tier].push(deck.pop() ?? null);
     decks[tier] = deck;
   }
-  const patrons = shuffle(
-    PATRON_LIST.map((p) => p.id),
-    random,
-  ).slice(0, playerIds.length + 1);
+  // 인원수+1장. 같은 쌤(이름)의 타일은 한 판에 한 장만
+  const patrons: string[] = [];
+  const usedNames = new Set<string>();
+  for (const p of shuffle(PATRON_LIST, random)) {
+    if (patrons.length >= playerIds.length + 1) break;
+    if (usedNames.has(p.name)) continue;
+    usedNames.add(p.name);
+    patrons.push(p.id);
+  }
   const order = shuffle(playerIds, random);
   return {
     options: { targetScore: TARGET_SCORE },
