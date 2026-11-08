@@ -1,6 +1,7 @@
 import type { SeatInfo } from '../../../net/types';
 import { CARDS, ESSENCE_INFO, PATRONS, TIER_INFO } from '../data';
 import { ESSENCES, type Card, type Essence, type PlayerView, type Tier, type TokenColor, type TokenCounts } from '../types';
+import { CardArt } from './cardArt';
 import { EssenceIcon } from './icons';
 
 const ROMAN: Record<Tier, string> = { 1: 'I', 2: 'II', 3: 'III' };
@@ -85,6 +86,7 @@ export function RecipeCard({
           <EssenceIcon color={card.essence} size={size === 'sm' ? 14 : size === 'lg' ? 26 : 18} />
         </span>
       </span>
+      <CardArt card={card} />
       <span className="card-name">{card.name}</span>
       <span className="card-bottom">
         <CostPips cost={card.cost} bonus={bonus} />

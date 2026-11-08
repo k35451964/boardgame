@@ -1621,3 +1621,68 @@ button.patron {
 .step:hover {
   border-color: var(--gold-dim);
 }
+
+/* ───────────── 카드 그림 ───────────── */
+.card > * {
+  position: relative;
+  z-index: 1;
+}
+.card > .card-art,
+.card > .card-photo {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+.card-art {
+  right: 6%;
+  bottom: 13%;
+  width: 66%;
+  height: auto;
+  color: color-mix(in srgb, var(--c) 75%, #2b2016);
+  opacity: 0.22;
+}
+.card-photo {
+  left: 50%;
+  top: 52%;
+  width: 62%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  transform: translate(-30%, -50%);
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--c) 50%, #fff);
+  opacity: 0.9;
+}
+.card-lg .card-art {
+  opacity: 0.3;
+}
+
+/* ───────────── 카드 도감 ───────────── */
+.cards-page {
+  max-width: 980px;
+  --card-w: 92px;
+}
+.gallery-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gallery-tier {
+  margin-top: 8px;
+}
+.gallery-tier .hint {
+  margin: 0 0 4px;
+}
+.gallery-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 520px) {
+  .cards-page {
+    --card-w: 74px;
+  }
+  .cards-page .card-name {
+    display: -webkit-box;
+    font-size: 9.5px;
+  }
+}

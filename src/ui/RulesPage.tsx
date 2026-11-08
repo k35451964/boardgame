@@ -91,6 +91,9 @@ export function RulesPage() {
         </p>
       </section>
 
+      <button className="btn btn-wide" onClick={() => navigate('/cards')}>
+        카드 도감 보기 (90장)
+      </button>
       <button className="btn btn-primary btn-wide" onClick={() => navigate('/')}>
         처음으로
       </button>

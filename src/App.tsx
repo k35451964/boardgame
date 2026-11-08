@@ -1,5 +1,6 @@
 import { Home } from './ui/Home';
 import { RoomPage } from './ui/RoomPage';
+import { CardsPage } from './ui/CardsPage';
 import { RulesPage } from './ui/RulesPage';
 import { useHashPath } from './ui/router';
 import { normalizeRoomCode } from './net/common';
@@ -13,5 +14,6 @@ export function App() {
   }
   if (path === '/local') return <RoomPage key="local" code="LOCAL" local />;
   if (path === '/rules') return <RulesPage />;
+  if (path === '/cards') return <CardsPage />;
   return <Home />;
 }
