@@ -7,20 +7,20 @@ export interface RankInfo {
   tag?: string;
 }
 
-/** 순서는 무작위로 정했다 */
+/** 순서는 무작위로 정했다. 단, 농노(유미)는 가장 약하고 가장 많은 12번 */
 export const RANKS: RankInfo[] = [
   { rank: 1, name: '하마', emoji: '🦛' },
   { rank: 2, name: '호랑이', emoji: '🐅' },
   { rank: 3, name: '장수풍뎅이', emoji: '🪲' },
   { rank: 4, name: '인간', emoji: '🧑' },
-  { rank: 5, name: '유미', emoji: '👩‍🌾', tag: '농노' },
+  { rank: 5, name: '벌꿀오소리', emoji: '🦡' },
   { rank: 6, name: '상어', emoji: '🦈' },
   { rank: 7, name: '북극곰', emoji: '🐻‍❄️' },
   { rank: 8, name: '코끼리', emoji: '🐘' },
   { rank: 9, name: '얼룩말', emoji: '🦓' },
   { rank: 10, name: '기린', emoji: '🦒' },
   { rank: 11, name: '코뿔소', emoji: '🦏' },
-  { rank: 12, name: '벌꿀오소리', emoji: '🦡' },
+  { rank: 12, name: '유미', emoji: '👩‍🌾', tag: '농노' },
 ];
 
 export const JOKER: RankInfo = { rank: 13, name: '김태성', emoji: '🤡', tag: '어릿광대' };
