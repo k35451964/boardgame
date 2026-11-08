@@ -30,8 +30,9 @@ import {
   type TokenCounts,
 } from './types';
 
-export const DEFAULT_OPTIONS: AlchemyOptions = { targetScore: 15 };
-export const TARGET_SCORE_CHOICES = [12, 15, 18];
+/** 목표 점수는 15점 고정 */
+export const TARGET_SCORE = 15;
+export const DEFAULT_OPTIONS: AlchemyOptions = { targetScore: TARGET_SCORE };
 
 
 // ───────────────────────── 계산 도우미 ─────────────────────────
@@ -138,7 +139,7 @@ export function hasAnyAction(state: AlchemyState, player: PlayerState): boolean 
 
 // ───────────────────────── 시작 ─────────────────────────
 
-export function setup(playerIds: PlayerId[], options: AlchemyOptions, seed: number): AlchemyState {
+export function setup(playerIds: PlayerId[], _options: AlchemyOptions, seed: number): AlchemyState {
   if (playerIds.length < 2 || playerIds.length > 4) throw new Error('2~4명만 플레이할 수 있습니다.');
   const random = createRng(seed);
   const n = essenceTokenCount(playerIds.length);
@@ -160,7 +161,7 @@ export function setup(playerIds: PlayerId[], options: AlchemyOptions, seed: numb
   ).slice(0, playerIds.length + 1);
   const order = shuffle(playerIds, random);
   return {
-    options: { ...options },
+    options: { targetScore: TARGET_SCORE },
     players: order.map((id) => ({ id, tokens: emptyTokens(), cards: [], reserved: [], patrons: [] })),
     turn: 0,
     round: 1,
