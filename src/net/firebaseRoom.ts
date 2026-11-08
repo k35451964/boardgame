@@ -40,6 +40,27 @@ interface RoomData {
 }
 
 /** 새 방을 만들고 방 코드를 돌려준다. */
+/** 방 만들기에 실패한 이유를 사람이 알아볼 수 있는 문장으로 */
+export function explainFirebaseError(e: unknown): string {
+  const text = String((e as { code?: string })?.code ?? '') + ' ' + String(e);
+  if (/operation-not-allowed|admin-restricted-operation/.test(text)) {
+    return '익명 로그인이 꺼져 있어요. Firebase 콘솔 → Authentication → 로그인 방법 → "익명"을 사용 설정해 주세요.';
+  }
+  if (/PERMISSION_DENIED|permission_denied|ROOM_RULES/.test(text)) {
+    return '데이터베이스 규칙이 아직 적용되지 않았어요. Firebase 콘솔 → Realtime Database → 규칙 탭에 database.rules.json 내용을 붙여 넣고 "게시"해 주세요.';
+  }
+  if (/unauthorized-domain/.test(text)) {
+    return '이 사이트 주소가 허용되지 않았어요. Firebase 콘솔 → Authentication → 설정 → 승인된 도메인에 k35451964.github.io 를 추가해 주세요.';
+  }
+  if (/api-key|invalid-api-key|API key/i.test(text)) {
+    return 'Firebase 설정값(apiKey)이 올바르지 않아요.';
+  }
+  if (/network|offline|timeout/i.test(text)) {
+    return 'Firebase에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 해 주세요.';
+  }
+  return `방을 만들지 못했어요. (${text.trim().slice(0, 120)})`;
+}
+
 export async function createOnlineRoom(game: AnyGame, name: string): Promise<string> {
   const uid = await myUid();
   const db = database();
@@ -57,7 +78,8 @@ export async function createOnlineRoom(game: AnyGame, name: string): Promise<str
       if (!String(e).includes('PERMISSION_DENIED')) throw e;
     }
   }
-  throw new Error('방을 만들지 못했어요.');
+  // 무작위 코드 5개가 모두 겹칠 리는 없으므로, 계속 거부되면 규칙 문제다
+  throw new Error('ROOM_RULES PERMISSION_DENIED');
 }
 
 export class FirebaseRoom implements RoomClient {

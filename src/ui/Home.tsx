@@ -3,7 +3,7 @@ import { GAMES, SITE_TITLE } from '../config';
 import { GAME_MODULES } from '../games/registry';
 import { normalizeRoomCode } from '../net/common';
 import { isFirebaseConfigured } from '../net/firebase';
-import { createOnlineRoom } from '../net/firebaseRoom';
+import { createOnlineRoom, explainFirebaseError } from '../net/firebaseRoom';
 import { getMyName, setMyName } from '../net/storage';
 import { navigate } from './router';
 
@@ -32,7 +32,7 @@ export function Home() {
       navigate(`/room/${newCode}`);
     } catch (e) {
       console.error(e);
-      setError('방을 만들지 못했어요. 인터넷 연결을 확인하고 다시 해 주세요.');
+      setError(explainFirebaseError(e));
       setCreating(false);
     }
   };
